@@ -63,12 +63,12 @@ class Entity(SoftDeleteModel):
     parent_id = models.ForeignKey("self", on_delete= models.SET_NULL,blank=True, null=True)
 
 class Unit(SoftDeleteModel):
-    UNIT_TYPES = {
-        "BR":"Branch",
-        "DEP":"Department",
-        "SEC":"Section",
-        "TEA":"Team"
-    }
+    UNIT_TYPES = [
+        ("BR","Branch"),
+        ("DEP","Department"),
+        ("SEC","Section"),
+        ("TEA","Team")
+    ]
 
     name = models.CharField(max_length=15)
     address = models.TextField(null=True, blank= True)
@@ -78,8 +78,7 @@ class Unit(SoftDeleteModel):
     def __str__(self) -> str:
         return self.name
 
-class BaseUser(AbstractUser):
-
+class User(AbstractUser):
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     other_names = models.CharField(max_length=30)
@@ -87,22 +86,19 @@ class BaseUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
+
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ["username"]
+    
+
+
+class Employee (SoftDeleteModel):
+    user = models.ForeignKey("core.User", on_delete=models.CASCADE)
+
     instance = models.ForeignKey("Instance", on_delete=models.CASCADE)
     entity = models.ForeignKey("Entity", on_delete=models.CASCADE)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null= True)
-
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
-
-
-    class Meta:
-        abstract = True
-
-class User (SoftDeleteModel,BaseUser):
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
-
 
 
 
@@ -117,15 +113,14 @@ class AdminType(SoftDeleteModel):
     name = models.CharField(max_length=30, choices=ADMIN_TYPES)
     description = models.TextField()
 
-class Admin(SoftDeleteModel, BaseUser):
+class Admin(SoftDeleteModel):
+
+    user = models.ForeignKey("core.User", on_delete=models.CASCADE)
     admin_type = models.ForeignKey(AdminType,on_delete=models.SET_NULL, null=True, blank=True)
     
     jurisdiction_content_type  = models.ForeignKey(ContentType, on_delete=models.SET_NULL, blank=True, null=True)
     jurisdiction_object_id = models.PositiveIntegerField()
-    jurisdiction = GenericForeignKey(jurisdiction_content_type, jurisdiction_object_id)
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
+    jurisdiction = GenericForeignKey("jurisdiction_content_type", "jurisdiction_object_id")
 
 
     def save(self, *args, **kwargs):
