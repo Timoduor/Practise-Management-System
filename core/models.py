@@ -147,7 +147,12 @@ class User(AbstractUser):
     objects = CustomUserManager()
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+
+        if self.first_name == None and self.last_name== None:
+            name = self.email 
+        else:
+            name = f"{self.first_name} {self.last_name}"
+        return name
 
 
 class Employee (SoftDeleteModel):
@@ -163,14 +168,9 @@ class Employee (SoftDeleteModel):
 
 
 class AdminType(SoftDeleteModel):
-    ADMIN_TYPES = [
-        ("SUP", "SuperUser" ),
-        ("INS", "Instance Admin"),
-        ("ENT", "Entity Admin"),
-        ("UNI", "Unit Admin")
-    ]
 
-    name = models.CharField(max_length= 15, choices=ADMIN_TYPES)
+
+    name = models.CharField(max_length= 15)
     description = models.TextField()
 
     def __str__(self) -> str:
@@ -182,7 +182,7 @@ class Admin(SoftDeleteModel):
     admin_type = models.ForeignKey(AdminType,on_delete=models.SET_NULL, null=True, blank=True)
     
     jurisdiction_content_type  = models.ForeignKey(ContentType, on_delete=models.SET_NULL, blank=True, null=True)
-    jurisdiction_object_id = models.PositiveIntegerField()
+    jurisdiction_object_id = models.PositiveIntegerField(blank=True, null=True)
     jurisdiction = GenericForeignKey("jurisdiction_content_type", "jurisdiction_object_id")
 
 
