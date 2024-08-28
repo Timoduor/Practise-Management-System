@@ -3,3 +3,8 @@
 *.pyc
 
 /tija/settings_local.py
+
+**/migrations/*.py
+**/migrations/*.pyc
+
+!**/migrations/__init__.py
