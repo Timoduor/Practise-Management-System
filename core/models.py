@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 # Create your models here.
@@ -84,6 +84,49 @@ class Unit(SoftDeleteModel):
     def __str__(self):
         return self.name
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        user = self.create_user(email, password, **extra_fields)
+        admin_type, created = AdminType.objects.get_or_create(
+            name="SUP",
+            defaults={"description": "Superuser with all permissions",
+                    "created_by": user,
+                    'last_updated_by': user
+                    }
+        )   
+
+        # Create Admin entry
+        Admin.objects.get_or_create(
+            user=user,
+            defaults={
+                'admin_type': admin_type,
+                'jurisdiction_content_type': None,
+                'jurisdiction_object_id': None,
+                'last_updated_by' : None,
+                'created_by': None
+            }
+        )
+
+        return
+
 class User(AbstractUser):
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
@@ -95,8 +138,10 @@ class User(AbstractUser):
 
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ["username"]
-    
+    REQUIRED_FIELDS = []  # No required fields for createsuperuser
+
+    objects = CustomUserManager()
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
