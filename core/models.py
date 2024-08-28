@@ -72,7 +72,7 @@ class Unit(SoftDeleteModel):
 
     name = models.CharField(max_length=15)
     address = models.TextField(null=True, blank= True)
-    unit_type = models.CharField(choices=UNIT_TYPES),
+    unit_type = models.CharField(choices=UNIT_TYPES, max_length=3)
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL,blank=True, null=True)
 
     def __str__(self) -> str:
