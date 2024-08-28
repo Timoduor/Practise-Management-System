@@ -49,6 +49,9 @@ class Instance(SoftDeleteModel):
     code = models.CharField(max_length=10)
     industry = models.CharField(max_length=15)
 
+    def __str__(self):
+        return self.name
+
 
 class Entity(SoftDeleteModel):
     ENTITY_TYPES = [
@@ -62,6 +65,9 @@ class Entity(SoftDeleteModel):
     instance = models.ForeignKey("Instance", on_delete= models.SET_NULL,blank=True, null=True )
     parent_id = models.ForeignKey("self", on_delete= models.SET_NULL,blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
 class Unit(SoftDeleteModel):
     UNIT_TYPES = [
         ("BR","Branch"),
@@ -72,10 +78,10 @@ class Unit(SoftDeleteModel):
 
     name = models.CharField(max_length=15)
     address = models.TextField(null=True, blank= True)
-    unit_type = models.CharField(choices=UNIT_TYPES),
+    unit_type = models.CharField(max_length=3, choices=UNIT_TYPES, default="DEP")
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL,blank=True, null=True)
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name
 
 class User(AbstractUser):
@@ -91,6 +97,8 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ["username"]
     
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
 
 
 class Employee (SoftDeleteModel):
@@ -110,8 +118,11 @@ class AdminType(SoftDeleteModel):
         ("UNI", "Unit Admin")
     ]
 
-    name = models.CharField(max_length=30, choices=ADMIN_TYPES)
+    name = models.CharField(max_length= 15, choices=ADMIN_TYPES)
     description = models.TextField()
+
+    def __str__(self) -> str:
+        return self.name
 
 class Admin(SoftDeleteModel):
 
