@@ -139,6 +139,7 @@ class User(AbstractUser):
     address = models.TextField(blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
 
+    username = None
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []  # No required fields for createsuperuser
@@ -150,7 +151,10 @@ class User(AbstractUser):
 
 
 class Employee (SoftDeleteModel):
-    user = models.ForeignKey("core.User", on_delete=models.CASCADE)
+    """"
+
+    """
+    user = models.OneToOneField("core.User", on_delete=models.CASCADE, related_name="employee_user")
 
     instance = models.ForeignKey("Instance", on_delete=models.CASCADE)
     entity = models.ForeignKey("Entity", on_delete=models.CASCADE)
@@ -174,7 +178,7 @@ class AdminType(SoftDeleteModel):
 
 class Admin(SoftDeleteModel):
 
-    user = models.ForeignKey("core.User", on_delete=models.CASCADE)
+    user = models.OneToOneField("core.User", on_delete=models.CASCADE, related_name="admin_user")
     admin_type = models.ForeignKey(AdminType,on_delete=models.SET_NULL, null=True, blank=True)
     
     jurisdiction_content_type  = models.ForeignKey(ContentType, on_delete=models.SET_NULL, blank=True, null=True)
