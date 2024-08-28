@@ -23,6 +23,9 @@ class SoftDeleteModel(models.Model):
     is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    last_updated_by = models.ForeignKey("core.User", null=True, blank=True, on_delete=models.DO_NOTHING,related_name='%(class)s_last_updated_by')
+    created_by = models.ForeignKey("core.User",null=True, blank=True ,on_delete=models.DO_NOTHING, related_name='%(class)s_created_by')
+
 
     objects = SoftDeleteManager()
     all_objects = models.Manager()  # This manager includes deleted instances
