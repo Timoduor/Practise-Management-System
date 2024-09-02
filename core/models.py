@@ -66,7 +66,7 @@ class Entity(SoftDeleteModel):
     entity_type = models.CharField(max_length=15, choices=ENTITY_TYPES, default="Single Entity Company")
     description = models.TextField()
     instance = models.ForeignKey("Instance", on_delete= models.SET_NULL,blank=True, null=True )
-    parent_id = models.ForeignKey("self", on_delete= models.SET_NULL,blank=True, null=True)
+    parent_entity = models.ForeignKey("self", on_delete= models.SET_NULL,blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -165,7 +165,7 @@ class User(AbstractUser):
     def undelete(self):
         self.is_active = False
         self.save()
-        
+
     def hard_delete(self):
         super().delete()
 
