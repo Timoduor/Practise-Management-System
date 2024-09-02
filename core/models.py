@@ -152,7 +152,26 @@ class User(AbstractUser):
             name = self.email 
         else:
             name = f"{self.first_name} {self.last_name}"
-        return name
+        return f"{self.first_name} {self.last_name}"
+
+
+    def delete(self, using=None, keep_parents=False):
+        self.is_active = True
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+
+    def undelete(self):
+        self.is_active = False
+        self.save()
+        
+    def hard_delete(self):
+        super().delete()
+
+    def undelete(self):
+        self.is_active = False
+        self.save()
 
 
 class Employee (SoftDeleteModel):
