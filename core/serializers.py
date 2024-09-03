@@ -3,14 +3,11 @@ from rest_framework import serializers
 
 
 class SoftDeleteMixin:
-    def delete(self, instance):
+    def perform_soft_delete(self, instance):
         instance.delete()  # Call the soft delete method from the model
 
 class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 
-
-    # admin = serializers.PrimaryKeyRelatedField(queryset=Admin.objects.all(), required=False)
-    # employee = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     employee_instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all(),  required=False)
     employee_entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(),  required=False)
     employee_unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False)
@@ -43,7 +40,6 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         return data
 
     def create(self, validated_data):
-        admin_data = validated_data.pop('admin',None)
         employee_instance = validated_data.pop('employee_instance', None)
         employee_entity = validated_data.pop('employee_entity', None)
         employee_unit = validated_data.pop('employee_unit', None)
