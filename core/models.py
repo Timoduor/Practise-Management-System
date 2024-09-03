@@ -69,7 +69,7 @@ class Entity(SoftDeleteModel):
     parent_entity = models.ForeignKey("self", on_delete= models.SET_NULL,blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.instance} - {self.name}"
 
 class Unit(SoftDeleteModel):
     UNIT_TYPES = [
@@ -85,7 +85,7 @@ class Unit(SoftDeleteModel):
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL,blank=True, null=True, related_name="units")
 
     def __str__(self):
-        return self.name
+        return f"{self.entity} - {self.name}"
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -128,7 +128,7 @@ class CustomUserManager(BaseUserManager):
             }
         )
 
-        return
+        return user
 
 class User(AbstractUser):
     first_name = models.CharField(max_length=30)
