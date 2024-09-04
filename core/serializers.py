@@ -46,25 +46,4 @@ class AdminSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 
     class Meta:
         model = Admin
-        fields = ['id','user', 'admin_type' ,'jurisdiction_content_type', 'jurisdiction_object_id',  ]
-
-
-class UnitSerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    class Meta:
-        model = Unit
-        fields = ['id', 'name', 'unit_type', 'address', 'entity', 'is_deleted' ,'created_at', 'updated_at', 'last_updated_by', 'created_by',]
-
-
-class EntitySerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    units = UnitSerializer(many=True, read_only= True)
-    class Meta:
-        model = Entity# instance = 
-        fields = ['id','name' ,'entity_type', 'description', 'instance', 'parent_entity','is_deleted' ,'created_at', 'updated_at', 'last_updated_by', 'created_by', "units"]
-
-
-class InstanceSerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    entities = EntitySerializer(many=True, read_only=True)
-    class Meta:
-        model = Instance
-        fields = ['id' , 'name', 'code' ,'industry', 'is_deleted' ,'created_at', 'updated_at', 'last_updated_by', 'created_by', 'entities']
-    
+        fields = ['id','user', 'admin_type' ,'jurisdiction_content_type', 'jurisdiction_content_id',  ]
