@@ -63,10 +63,10 @@ class Contact(SoftDeleteModel):
 
 class Sales(SoftDeleteModel):
     sales_id = models.AutoField(primary_key=True)
-    sales_name = models.CharField(max_length=100)  
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     sales_description = models.TextField(null=True, blank=True)
-    project_value = models.DecimalField(max_digits=10, decimal_places=2)  
+    commons = models.TextField(null=True, blank=True)  # Placeholder for common notes or extra fields
+    project_value = models.DecimalField(max_digits=10, decimal_places=2)  # Project Value
     expected_order_date = models.DateField()
 
     SALES_STATUS_CHOICES = [
@@ -83,7 +83,7 @@ class Sales(SoftDeleteModel):
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Sales {self.sales_id}: {self.sales_name}"  
+        return f"Sales {self.sales_id}: {self.sales_description[:20]}"
 
 
 class Invoice(SoftDeleteModel):
@@ -101,3 +101,5 @@ class Invoice(SoftDeleteModel):
 
     def __str__(self):
         return f"Invoice {self.invoice_id}: {self.invoice_amount}"
+
+
