@@ -11,9 +11,9 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 
     # admin = serializers.PrimaryKeyRelatedField(queryset=Admin.objects.all(), required=False)
     # employee = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
-    # employee_instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all(),  required=False)
-    # employee_entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(),  required=False)
-    # employee_unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False)
+    employee_instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all(),  required=False)
+    employee_entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(),  required=False)
+    employee_unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False)
     class Meta:
         model = User
         fields = ['id','email','password', 'first_name', 'last_name', 'other_names', 'phone_number', 'address', 'dob', 'is_staff', 'is_superuser', 'is_active', 'employee_instance', 'employee_entity', 'employee_unit' ]
