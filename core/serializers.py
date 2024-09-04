@@ -8,8 +8,30 @@ class SoftDeleteMixin:
 class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     class Meta:
         model = User
-        fields = ['id','email','password', 'first_name', 'last_name', 'other_names', 'phone_number', 'address', 'dob', 'is_staff', 'is_superuser', 'is_active' ]
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['id','email','password', 'first_name', 'last_name', 'other_names', 'phone_number', 'address', 'dob', 'is_staff', 'is_superuser', 'is_active', 'employee_instance', 'employee_entity', 'employee_unit' ]
+        extra_kwargs = {'password': {'write_only': True},
+                    }
+    
+    def create(self, validated_data):
+        admin_data = validated_data.pop('admin',None)
+        employee_data = validated_data.pop('employee', None)
+        user = User.objects.create(**validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
+
+        if user.is_staff:
+            admin_type, created = AdminType.objects.get_or_create(name="INS")
+            Admin.objects.create(user=user, admin_type=admin_type)
+
+        if 'employee_instance' in validated_data:
+            Employee.objects.create(
+                user = user,
+                instance = validated_data['employee_instance'],
+                entity = validated_data.get("employee_entity"),
+                unit = validated_data.get("employee_unit")
+
+            )
+        return user
 
 class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     user = UserSerializer()
