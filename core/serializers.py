@@ -2,10 +2,7 @@ from rest_framework_simplejwt.tokens import Token
 from .models import *
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 class SoftDeleteMixin:
     def perform_soft_delete(self, instance):
@@ -105,18 +102,13 @@ class InstanceSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        logger.debug(f"Generating token for user: {user.email}")
-        logger.debug(f"Generating token for user: {user.id}")
-        logger.debug(f"Generating token for user: {user.first_name}")
-        logger.debug(f"Generating token for user: {user.last_name}")
+
 
         token = super().get_token(user)
-        token["daft"] = "punk"
         token['email'] = user.email
-        token['id'] = user.id
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
 
-        logger.debug(f"Token generated with custom claims: {token}")
+        
 
         return token
