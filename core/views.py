@@ -47,3 +47,26 @@ class UserViewSet(viewsets.ModelViewSet):
     #     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class AdminViewSet(viewsets.ModelViewSet):
+    queryset = Admin.objects.all()
+    serializer_class = AdminSerializer
+
+class EmployeeViewSet(viewsets.ModelViewSet): 
+    queryset = Employee.objects.all()
+    serializer_class = EmployeeSerializer  
+
+    def destroy(self, request, pk= None):
+        user = get_object_or_404(Admin, pk= pk)
+
+
+class InstanceViewSet(viewsets.ModelViewSet):
+    queryset = Instance.objects.all()
+    serializer_class = InstanceSerializer
+
+class EntityViewSet(viewsets.ModelViewSet):
+    queryset = Entity.objects.all()
+    serializer_class = EntitySerializer
+
+class UnitViewSet(viewsets.ModelViewSet):
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer
