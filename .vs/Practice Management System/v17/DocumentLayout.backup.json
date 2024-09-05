@@ -1,0 +1,66 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\Practice Management System\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C1DBC014-6B06-4F0A-AE80-8CDFCE90CEC1}|Practice Management System.pyproj|D:\\Projects\\Practice Management System\\ReadMe.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{C1DBC014-6B06-4F0A-AE80-8CDFCE90CEC1}|Practice Management System.pyproj|solutionrelative:ReadMe.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C1DBC014-6B06-4F0A-AE80-8CDFCE90CEC1}|Practice Management System.pyproj|D:\\Projects\\Practice Management System\\manage.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{C1DBC014-6B06-4F0A-AE80-8CDFCE90CEC1}|Practice Management System.pyproj|solutionrelative:manage.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{57d563b6-44a5-47df-85be-f4199ad6b651}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:2:0:{57d563b6-44a5-47df-85be-f4199ad6b651}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ReadMe.md",
+              "DocumentMoniker": "D:\\Projects\\Practice Management System\\ReadMe.md",
+              "RelativeDocumentMoniker": "ReadMe.md",
+              "ToolTip": "D:\\Projects\\Practice Management System\\ReadMe.md",
+              "RelativeToolTip": "ReadMe.md",
+              "ViewState": "AgIAAD0AAAAAAAAAAAAcwIsAAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2024-09-05T06:18:03.161Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "manage.py",
+              "DocumentMoniker": "D:\\Projects\\Practice Management System\\manage.py",
+              "RelativeDocumentMoniker": "manage.py",
+              "ToolTip": "D:\\Projects\\Practice Management System\\manage.py",
+              "RelativeToolTip": "manage.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2024-09-05T05:29:49.208Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
