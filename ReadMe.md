@@ -137,7 +137,8 @@ See the [open issues](https://dev.azure.com/sbslpracticeManagementSystem/Practic
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Create a Pull Request
 
-**Only push/merge working code to main/master branches**
+* **Only push/merge working code to main/master branches**
+* **Always pull changes from main/master and merge locally first before creating your pull request to master/main**
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
