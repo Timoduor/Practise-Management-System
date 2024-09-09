@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.models import User  
-from .models import Customer, Contact, Sales
+from .models import Customer, Contact, Sales, Project, Task, Invoice
 
 class CustomerSerializer(serializers.ModelSerializer):
     contacts = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -14,7 +14,6 @@ class CustomerSerializer(serializers.ModelSerializer):
         entity = data.get('entity')
         unit = data.get('unit')
 
-        # Check if the unit belongs to the entity
         if unit and entity:
             if unit.entity != entity:
                 raise serializers.ValidationError({
@@ -54,6 +53,84 @@ class SalesSerializer(serializers.ModelSerializer):
             if project_manager.employee_entity != entity:
                 raise serializers.ValidationError({
                     'project_manager': 'The selected project manager must belong to the same entity as the sale.'
+                })
+
+        return data
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+
+    class Meta:
+        model = Project
+        fields = ['project_id', 'project_name', 'customer', 'project_description', 'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        entity = data.get('entity')
+        unit = data.get('unit')
+
+        if unit and entity:
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'The selected unit must belong to the selected entity.'
+                })
+
+        return data
+
+
+class TaskSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+
+    class Meta:
+        model = Task
+        fields = ['task_id', 'task_name', 'project', 'assigned_to', 'action_type', 'start_date', 'due_date', 'task_description', 'task_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        project = data.get('project')
+        entity = data.get('entity')
+        unit = data.get('unit')
+
+        if unit and entity:
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'The selected unit must belong to the selected entity.'
+                })
+
+        # Ensure the project's entity matches the task's entity
+        if project and entity:
+            if project.entity != entity:
+                raise serializers.ValidationError({
+                    'entity': 'The task must belong to the same entity as the project.'
+                })
+
+        return data
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(), required=False)
+
+    class Meta:
+        model = Invoice
+        fields = ['invoice_id', 'project', 'customer', 'invoice_amount', 'invoice_date', 'paid_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        project = data.get('project')
+        entity = data.get('entity')
+        unit = data.get('unit')
+
+        if unit and entity:
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'The selected unit must belong to the selected entity.'
+                })
+
+        # Ensure the project's entity matches the invoice's entity
+        if project and entity:
+            if project.entity != entity:
+                raise serializers.ValidationError({
+                    'entity': 'The invoice must belong to the same entity as the project.'
                 })
 
         return data
