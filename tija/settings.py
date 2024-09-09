@@ -23,7 +23,23 @@ except ImportError:
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = ['*']
+
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'KCn9dcAyGL}cmqU1@Z6)'
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "practice_management",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
+    }
+}
 
 
 # Application definition
