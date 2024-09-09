@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.models import User  
-from .models import Customer, Contact, Sales
+from .models import Customer, Contact, Sales, Project, Task, Invoice
 
 class CustomerSerializer(serializers.ModelSerializer):
     contacts = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -57,3 +57,28 @@ class SalesSerializer(serializers.ModelSerializer):
                 })
 
         return data
+
+class ProjectSerializer(serializers.ModelSerializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+
+    class Meta:
+        model = Project
+        fields = ['project_id', 'project_name', 'customer', 'project_description', 'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+
+
+class TaskSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+
+    class Meta:
+        model = Task
+        fields = ['task_id', 'task_name', 'project', 'assigned_to', 'action_type', 'start_date', 'due_date', 'task_description', 'task_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(), required=False)
+
+    class Meta:
+        model = Invoice
+        fields = ['invoice_id', 'project', 'customer', 'invoice_amount', 'invoice_date', 'paid_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
