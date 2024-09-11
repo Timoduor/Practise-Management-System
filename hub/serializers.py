@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.models import User  
-from .models import Customer, Contact, Sales, Project, Task, Invoice
+from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
 
 class CustomerSerializer(serializers.ModelSerializer):
     contacts = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -78,6 +78,26 @@ class ProjectSerializer(serializers.ModelSerializer):
         return data
 
 
+class ProjectPhaseSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+
+    class Meta:
+        model = ProjectPhase
+        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        # Ensure that the start date is before the end date
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError({
+                'end_date': 'End date must be after the start date.'
+            })
+
+        return data
+
+
 class TaskSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
@@ -102,6 +122,90 @@ class TaskSerializer(serializers.ModelSerializer):
             if project.entity != entity:
                 raise serializers.ValidationError({
                     'entity': 'The task must belong to the same entity as the project.'
+                })
+
+        return data
+
+
+class WorkEntriesSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all())
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all())
+
+    class Meta:
+        model = WorkEntries
+        fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'project', 'phase', 'task', 'task_type', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        project = data.get('project')
+        phase = data.get('phase')
+        task = data.get('task')
+
+        # Ensure the phase belongs to the correct project
+        if phase and project:
+            if phase.project != project:
+                raise serializers.ValidationError({
+                    'phase': 'The selected phase does not belong to the selected project.'
+                })
+
+        # Ensure the task belongs to the correct phase
+        if task and phase:
+            if task.phase != phase:
+                raise serializers.ValidationError({
+                    'task': 'The selected task does not belong to the selected phase.'
+                })
+
+        return data
+
+
+class AbsenceSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
+    leave_type = serializers.PrimaryKeyRelatedField(queryset=LeaveType.objects.all(), required=False)
+
+    class Meta:
+        model = Absence
+        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time', 'absence_description', 'project', 'leave_type', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        project = data.get('project')
+        leave_type = data.get('leave_type')
+
+        # Optionally, if a project is selected, ensure it belongs to a valid project
+        if project:
+            if not Project.objects.filter(pk=project.id).exists():
+                raise serializers.ValidationError({
+                    'project': 'The selected project does not exist.'
+                })
+
+        return data
+
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all())
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all())
+
+    class Meta:
+        model = Expense
+        fields = ['expense_id', 'user', 'project', 'phase', 'task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        project = data.get('project')
+        phase = data.get('phase')
+        task = data.get('task')
+
+        # Ensure the phase belongs to the correct project
+        if phase and project:
+            if phase.project != project:
+                raise serializers.ValidationError({
+                    'phase': 'The selected phase does not belong to the selected project.'
+                })
+
+        # Ensure the task belongs to the correct phase
+        if task and phase:
+            if task.phase != phase:
+                raise serializers.ValidationError({
+                    'task': 'The selected task does not belong to the selected phase.'
                 })
 
         return data
