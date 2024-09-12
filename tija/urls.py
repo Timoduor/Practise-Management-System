@@ -22,6 +22,7 @@ from core.views import CustomTokenObtainPairView
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from core.views import LogoutView
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -45,7 +46,9 @@ urlpatterns = [
     path("core/", include("core.urls")),
     path('hub/', include('hub.urls')),
     path("core/", include("core.urls")),
-    path("api/token/", CustomTokenObtainPairView.as_view(), name = "token_obtain_pair"),
+    path("api/token/", CustomTokenObtainPairView.as_view(), name = "login"),
     path("api/token/refresh", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/logout/", LogoutView.as_view(), name="logout")
+    
 
 ]

@@ -1,11 +1,13 @@
 from django.shortcuts import render
+from rest_framework.request import Request
 from .models import *
 from .serializers import *
 from rest_framework import generics,viewsets, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
 # Create your views here.
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -74,3 +76,30 @@ class UnitViewSet(viewsets.ModelViewSet):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request: Request, *args, **kwargs):
+        response =  super().post(request, *args, **kwargs)
+
+        data = response.data
+
+        response.set_cookie(
+            'access_token' , data["access"], httponly= True, samesite='Strict'
+        )
+
+        response.set_cookie(
+            'refresh_token' , data["refresh"], httponly= True, samesite='Strict'
+        )
+
+        return response
+
+class LogoutView(APIView):
+    def post(self,request):
+        try:
+            refresh_token = request.data['refresh_token']
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status= status.HTTP_205_RESET_CONTENT)
+        
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -1,7 +1,10 @@
-from rest_framework_simplejwt.tokens import Token
+from typing import Any, Dict
+from rest_framework_simplejwt.tokens import Token, RefreshToken
 from .models import *
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth import authenticate
 
 
 class SoftDeleteMixin:
@@ -109,6 +112,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
 
-        
-
         return token
+    
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise AuthenticationFailed(detail ="User does not exist", code='user_does_not_exist')
+        
+        user = authenticate(email=email, password= password)
+
+        if user is None:
+            raise AuthenticationFailed(detail="Incorrect password", code='incorrect_password')
+        return super().validate(attrs)
