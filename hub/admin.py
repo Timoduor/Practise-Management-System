@@ -78,23 +78,23 @@ class WorkEntriesAdmin(admin.ModelAdmin):
 @admin.register(LeaveType)
 class LeaveTypeAdmin(admin.ModelAdmin):
     fieldsets = [
-        ("Leave Info", {"fields": ["name", "description", "is_paid"]}),
+        ("Leave Type Info", {"fields": ["name", "description", "is_paid"]}),
     ]
-    list_display = ('name', 'description', 'is_paid')
+    list_display = ('name', 'is_paid', 'created_at', 'updated_at')
     search_fields = ('name',)
-    list_filter = ('is_paid',)
+    list_filter = ('is_paid', 'created_at', 'updated_at')
 
 
 @admin.register(Absence)
 class AbsenceAdmin(admin.ModelAdmin):
     fieldsets = [
-        ("Absence Info", {"fields": ["absence_date", "start_time", "end_time", "absence_description"]}),
+        ("Absence Info", {"fields": ["absence_date", "start_time", "end_time", "absence_description", "leave_type"]}),
         ("Project", {"fields": ["project"]}),
-        ("User", {"fields": ["user", "leave_type"]}),
+        ("User", {"fields": ["user"]}),
     ]
-    list_display = ('user', 'absence_date', 'start_time', 'end_time', 'project', 'leave_type', 'created_at', 'updated_at')
-    search_fields = ('user__email', 'project__project_name', 'leave_type__name')
-    list_filter = ('absence_date', 'leave_type', 'project', 'is_deleted')
+    list_display = ('user', 'absence_date', 'start_time', 'end_time', 'leave_type', 'project', 'created_at', 'updated_at')
+    search_fields = ('user__email', 'project__project_name')
+    list_filter = ('leave_type', 'project', 'absence_date', 'is_deleted')
 
 
 @admin.register(Expense)
