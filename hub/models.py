@@ -45,6 +45,7 @@ class ProjectPhase(SoftDeleteModel):
 class Task(SoftDeleteModel):  
     task_id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=100)
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.CASCADE, related_name="tasks")
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
     task_description = models.TextField(null=True, blank=True)
@@ -88,10 +89,10 @@ class WorkEntries(SoftDeleteModel):
         return f"Work entry on {self.project} - {self.phase} - {self.task}"
 
 
-class LeaveType(SoftDeleteModel):  
-    name = models.CharField(max_length=50)
-    description = models.TextField(blank=True, null=True)
-    is_paid = models.BooleanField(default=False)
+class LeaveType(SoftDeleteModel):
+    name = models.CharField(max_length=100, unique=True)  
+    description = models.TextField(null=True, blank=True)  
+    is_paid = models.BooleanField(default=False)  
 
     def __str__(self):
         return self.name
