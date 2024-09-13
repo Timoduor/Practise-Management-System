@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import SoftDeleteModel, Entity, Unit, User
+from core.models import SoftDeleteModel, Entity, Unit, User, Employee
 
 class Customer(SoftDeleteModel):
     customer_id = models.AutoField(primary_key=True)
@@ -22,6 +22,8 @@ class Project(SoftDeleteModel):
     project_description = models.TextField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
+
+    members = models.ManyToManyField(Employee, related_name="project_members")
 
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null=True)
@@ -156,6 +158,7 @@ class Sales(SoftDeleteModel):
     ]
     sales_status = models.CharField(max_length=10, choices=SALES_STATUS_CHOICES, default='PENDING')
     project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
+    members = models.ManyToManyField(Employee, related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
