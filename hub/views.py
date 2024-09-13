@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense
-from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer
+from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
+from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer, LeaveTypeSerializer
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -34,6 +34,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 class WorkEntriesViewSet(viewsets.ModelViewSet):
     queryset = WorkEntries.objects.all()
     serializer_class = WorkEntriesSerializer
+
+class LeaveTypeViewSet(viewsets.ModelViewSet):
+    queryset = LeaveType.objects.all()
+    serializer_class = LeaveTypeSerializer
 
 class AbsenceViewSet(viewsets.ModelViewSet):
     queryset = Absence.objects.all()

@@ -66,6 +66,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['project_id', 'project_name', 'customer', 'project_description', 'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError("End date must be after the start date.")
+
         entity = data.get('entity')
         unit = data.get('unit')
 
@@ -88,12 +94,9 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
     def validate(self, data):
         start_date = data.get('start_date')
         end_date = data.get('end_date')
-        
-        # Ensure that the start date is before the end date
+
         if start_date and end_date and start_date > end_date:
-            raise serializers.ValidationError({
-                'end_date': 'End date must be after the start date.'
-            })
+            raise serializers.ValidationError("End date must be after the start date.")
 
         return data
 
@@ -104,25 +107,20 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['task_id', 'task_name', 'project', 'assigned_to', 'action_type', 'start_date', 'due_date', 'task_description', 'task_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['task_id', 'task_name', 'project', 'phase', 'assigned_to', 'start_date', 'due_date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
+        start_date = data.get('start_date')
+        due_date = data.get('due_date')
+
+        if start_date and due_date and start_date > due_date:
+            raise serializers.ValidationError("Due date must be after the start date.")
+
         project = data.get('project')
-        entity = data.get('entity')
-        unit = data.get('unit')
+        phase = data.get('phase')
 
-        if unit and entity:
-            if unit.entity != entity:
-                raise serializers.ValidationError({
-                    'unit': 'The selected unit must belong to the selected entity.'
-                })
-
-        # Ensure the project's entity matches the task's entity
-        if project and entity:
-            if project.entity != entity:
-                raise serializers.ValidationError({
-                    'entity': 'The task must belong to the same entity as the project.'
-                })
+        if phase and phase.project != project:
+            raise serializers.ValidationError("The phase must belong to the selected project.")
 
         return data
 
@@ -137,25 +135,29 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
         fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'project', 'phase', 'task', 'task_type', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+
+        if start_time and end_time and start_time > end_time:
+            raise serializers.ValidationError("End time must be after the start time.")
+
         project = data.get('project')
         phase = data.get('phase')
         task = data.get('task')
 
-        # Ensure the phase belongs to the correct project
-        if phase and project:
-            if phase.project != project:
-                raise serializers.ValidationError({
-                    'phase': 'The selected phase does not belong to the selected project.'
-                })
+        if phase and phase.project != project:
+            raise serializers.ValidationError("The selected phase does not belong to the selected project.")
 
-        # Ensure the task belongs to the correct phase
-        if task and phase:
-            if task.phase != phase:
-                raise serializers.ValidationError({
-                    'task': 'The selected task does not belong to the selected phase.'
-                })
+        if task and task.phase != phase:
+            raise serializers.ValidationError("The selected task does not belong to the selected phase.")
 
         return data
+
+
+class LeaveTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveType
+        fields = ['id', 'name', 'description', 'is_paid', 'created_at', 'updated_at']
 
 
 class AbsenceSerializer(serializers.ModelSerializer):
@@ -167,15 +169,11 @@ class AbsenceSerializer(serializers.ModelSerializer):
         fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time', 'absence_description', 'project', 'leave_type', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
-        project = data.get('project')
-        leave_type = data.get('leave_type')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
 
-        # Optionally, if a project is selected, ensure it belongs to a valid project
-        if project:
-            if not Project.objects.filter(pk=project.id).exists():
-                raise serializers.ValidationError({
-                    'project': 'The selected project does not exist.'
-                })
+        if start_time and end_time and start_time > end_time:
+            raise serializers.ValidationError("End time must be after the start time.")
 
         return data
 
@@ -194,22 +192,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
         phase = data.get('phase')
         task = data.get('task')
 
-        # Ensure the phase belongs to the correct project
-        if phase and project:
-            if phase.project != project:
-                raise serializers.ValidationError({
-                    'phase': 'The selected phase does not belong to the selected project.'
-                })
+        if phase and phase.project != project:
+            raise serializers.ValidationError("The selected phase does not belong to the selected project.")
 
-        # Ensure the task belongs to the correct phase
-        if task and phase:
-            if task.phase != phase:
-                raise serializers.ValidationError({
-                    'task': 'The selected task does not belong to the selected phase.'
-                })
+        if task and task.phase != phase:
+            raise serializers.ValidationError("The selected task does not belong to the selected phase.")
 
         return data
-
 
 class InvoiceSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
@@ -224,17 +213,25 @@ class InvoiceSerializer(serializers.ModelSerializer):
         entity = data.get('entity')
         unit = data.get('unit')
 
+        # Ensure the selected unit belongs to the selected entity
         if unit and entity:
             if unit.entity != entity:
                 raise serializers.ValidationError({
                     'unit': 'The selected unit must belong to the selected entity.'
                 })
 
-        # Ensure the project's entity matches the invoice's entity
+        # Ensure the project belongs to the same entity
         if project and entity:
             if project.entity != entity:
                 raise serializers.ValidationError({
                     'entity': 'The invoice must belong to the same entity as the project.'
                 })
+
+        # Ensure that the invoice date is valid if both dates are present
+        invoice_date = data.get('invoice_date')
+        if invoice_date and data.get('created_at') and invoice_date < data.get('created_at').date():
+            raise serializers.ValidationError({
+                'invoice_date': 'The invoice date cannot be before the creation date.'
+            })
 
         return data
