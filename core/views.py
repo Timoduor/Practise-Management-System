@@ -66,6 +66,8 @@ class InstanceViewSet(viewsets.ModelViewSet):
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
 
+    
+
 class EntityViewSet(viewsets.ModelViewSet):
     queryset = Entity.objects.all()
     serializer_class = EntitySerializer
@@ -82,12 +84,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         data = response.data
 
+        #Rememeber to switch http only back to true, you only set it to false to test on postman
         response.set_cookie(
-            'access_token' , data["access"], httponly= True, samesite='Strict'
+            'access_token' , data["access"], httponly= False, samesite='Strict'
         )
 
         response.set_cookie(
-            'refresh_token' , data["refresh"], httponly= True, samesite='Strict'
+            'refresh_token' , data["refresh"], httponly= False, samesite='Strict'
         )
 
         return response
