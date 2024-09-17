@@ -71,6 +71,7 @@ class WorkEntries(SoftDeleteModel):
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
+    duration = models.DurationField(editable=False, null=True, blank=True)    
     description = models.TextField(null=True, blank=True)
     
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
@@ -89,6 +90,11 @@ class WorkEntries(SoftDeleteModel):
 
     def __str__(self):
         return f"Work entry on {self.project} - {self.phase} - {self.task}"
+    
+    def save(self, *args, **kwargs):
+        if self.start_time and self.end_time:
+            self.duration = self.end_time - self.start_time
+        super().save(*args, **kwargs)
 
 
 class LeaveType(SoftDeleteModel):
@@ -106,6 +112,7 @@ class Absence(SoftDeleteModel):
     absence_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
+    duration = models.DurationField(editable=False, null=True, blank=True)
     absence_description = models.TextField(null=True, blank=True)
 
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
@@ -113,6 +120,11 @@ class Absence(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.user} - {self.leave_type} on {self.absence_date}"
+    
+    def save(self, *args, **kwargs):
+        if self.start_time and self.end_time:
+            self.duration = self.end_time - self.start_time
+        super().save(*args, **kwargs)
 
 
 class Expense(SoftDeleteModel):  
