@@ -132,13 +132,14 @@ class ProjectSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"Employee {employee.user} does not belong to the same instance as the project."
                 )
-
+        #Check that end date occurs after the start date
         if start_date and end_date and start_date > end_date:
             raise serializers.ValidationError("End date must be after the start date.")
 
         entity = data.get('entity')
         unit = data.get('unit')
 
+        #Check if input unit belongs to the input entity
         if unit and entity and unit.entity != entity:
             raise serializers.ValidationError({
                 'unit': 'The selected unit must belong to the selected entity.'
@@ -227,6 +228,20 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("The selected task does not belong to the selected phase.")
 
         return data
+    
+    def create(self, validated_data):
+        # Calculate the duration and save it in the database
+        start_time = validated_data.get('start_time')
+        end_time = validated_data.get('end_time')
+        validated_data['duration'] = end_time - start_time
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Calculate the duration when updating as well
+        start_time = validated_data.get('start_time', instance.start_time)
+        end_time = validated_data.get('end_time', instance.end_time)
+        instance.duration = end_time - start_time
+        return super().update(instance, validated_data)
 
 
 class LeaveTypeSerializer(serializers.ModelSerializer):
@@ -241,7 +256,7 @@ class AbsenceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Absence
-        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time', 'absence_description', 'project', 'leave_type', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project', 'leave_type', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
         start_time = data.get('start_time')
@@ -252,6 +267,19 @@ class AbsenceSerializer(serializers.ModelSerializer):
 
         return data
 
+    def create(self, validated_data):
+        # Calculate the duration and save it in the database
+        start_time = validated_data.get('start_time')
+        end_time = validated_data.get('end_time')
+        validated_data['duration'] = end_time - start_time
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Calculate the duration when updating as well
+        start_time = validated_data.get('start_time', instance.start_time)
+        end_time = validated_data.get('end_time', instance.end_time)
+        instance.duration = end_time - start_time
+        return super().update(instance, validated_data)
 
 class ExpenseSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
