@@ -5,6 +5,11 @@ from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer,
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import  status
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.utils.timezone import now
+from datetime import datetime, timedelta
+from collections import defaultdict
+from django.db.models import Sum
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -317,3 +322,91 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         # Return the response
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+
+
+class TimesheetView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request,*args, **kwargs):
+        user = request.user
+        current_date = now().date()
+        editable_date = current_date - timedelta(days=7)
+
+
+        week_start = request.query_params.get('week',None)
+
+         # If no week is provided, use current week starting Monday
+        if week_start:
+            week_start = datetime.strptime(week_start, '%Y-%m-%d')
+        else:
+            week_start = current_date - timedelta(days=current_date.weekday())  # Get Monday of the current week
+
+        
+        week_end = week_start + timedelta(days=6)
+
+        # Group work_entries, absences, and expenses by day
+        data = defaultdict(lambda: {
+            'work_entries': [],
+            'absences': [],
+            'expenses': []
+        })
+
+        work_entries = WorkEntries.objects.filter(
+            user=user, date__range=[week_start,week_end]
+        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type' ,'task__task_name','task__project','task__project__project_name', 'description')
+
+        absences = Absence.objects.filter(
+            user=user, absence_date__range=[week_start,week_end]
+        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type__name' ,'project_id','project__project_name', 'absence_description')
+        
+        expenses = Expense.objects.filter(
+            user = user, date__range=[week_start,week_end]
+        ).values('expense_id', 'date', 'value', 'description','task_id','task__task_name')
+
+
+        #Group entries by task_date
+
+        for entry in work_entries:
+            day_name = entry['date'].strftime('%A')
+
+            # Add an editable flag
+            entry['editable'] = entry['date'] >= editable_date
+            data[day_name]['work_entries'].append(entry)
+
+        # Group absences by date
+
+        for absence in absences:
+            day_name = absence['absence_date'].strftime('%A')
+
+            # Add an editable flag
+            absence['editable'] = absence['date'] >= editable_date
+            data[day_name]['absences'].append(absence)
+
+        
+        #Group expenses by date
+
+        for expense in expenses:
+            day_name = entry['date'].strftime('%A')
+
+            # Add an editable flag
+            expense['editable'] = expense['date'] >= editable_date
+            data[day_name]['expenses'].append(expense)
+
+
+        total_work_hours = work_entries.aggregate(total_duration= Sum('duration'))['total_duration'] or 0
+        total_absence_hours = absences.aggregate(total_duration=Sum('duration'))['total_duration'] or 0
+        total_expenses = expenses.aggregate(total_expenses = Sum('value'))['total_expenses'] or 0
+
+
+        response_data = {
+            'week_start' : week_start,
+            'week_end': week_end,
+            'total_work_duration': total_work_hours,
+            'total_absence_duration': total_absence_hours,
+            'total_expenses': total_expenses,
+            'days': data
+        }
+
+        return Response(response_data)
+    

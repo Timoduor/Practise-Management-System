@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CustomerViewSet, ContactViewSet, ProjectViewSet, TaskViewSet, SalesViewSet, InvoiceViewSet, ProjectPhaseViewSet, WorkEntriesViewSet,LeaveTypeViewSet, AbsenceViewSet, ExpenseViewSet
+from .views import CustomerViewSet, ContactViewSet, ProjectViewSet, TaskViewSet, SalesViewSet, InvoiceViewSet, ProjectPhaseViewSet, WorkEntriesViewSet,LeaveTypeViewSet, AbsenceViewSet, ExpenseViewSet, TimesheetView
 
 router = DefaultRouter()
 router.register(r'customers', CustomerViewSet)
@@ -17,3 +17,8 @@ router.register(r'expenses', ExpenseViewSet)
 
 
 urlpatterns = router.urls
+
+urlpatterns += [
+    path('dashboard/timesheets/', TimesheetView.as_view(), name="timesheet-dashboard" ),
+]
+               
