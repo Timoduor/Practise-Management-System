@@ -249,17 +249,7 @@ class AbsenceViewSet(viewsets.ModelViewSet):
         data['last_updated_by_id'] = request.user.id
         data['created_by_id'] = request.user.id
 
-        task_id = data.get("task")
-
-        # Fetch the task instance
-        try:
-            task = Task.objects.get(pk=task_id)
-        except Task.DoesNotExist:
-            return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        data['project'] = task.project.project_id
-        data['phase'] = task.phase.phase_id
-
+    
         # Pass the data to the serializer and validate it
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
