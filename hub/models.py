@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import models
 from core.models import SoftDeleteModel, Entity, Unit, User, Employee
 
@@ -93,7 +94,16 @@ class WorkEntries(SoftDeleteModel):
     
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-            self.duration = self.end_time - self.start_time
+
+            today = datetime.today().date()  # Common date for both times
+            # Combine date and time into datetime objects
+            start_datetime = datetime.combine(today, self.start_time)
+            
+            end_datetime = datetime.combine(today, self.end_time)
+
+            # Calculate the difference (this will be a timedelta object)
+            self.duration = end_datetime - start_datetime
+
         super().save(*args, **kwargs)
 
 
@@ -123,7 +133,16 @@ class Absence(SoftDeleteModel):
     
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-            self.duration = self.end_time - self.start_time
+
+            today = datetime.today().date()  # Common date for both times
+            # Combine date and time into datetime objects
+            start_datetime = datetime.combine(today, self.start_time)
+            
+            end_datetime = datetime.combine(today, self.end_time)
+
+            # Calculate the difference (this will be a timedelta object)
+            self.duration = end_datetime - start_datetime
+
         super().save(*args, **kwargs)
 
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework import serializers
 from core.models import User, Employee
 from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
@@ -233,14 +234,30 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
         # Calculate the duration and save it in the database
         start_time = validated_data.get('start_time')
         end_time = validated_data.get('end_time')
-        validated_data['duration'] = end_time - start_time
+        
+        today = datetime.today().date()  # Common date for both times
+
+        # Combine date and time into datetime objects
+        start_datetime = datetime.combine(today, start_time)
+        end_datetime = datetime.combine(today, end_time)
+
+        # Calculate the difference (this will be a timedelta object)
+        validated_data["duration"] = end_datetime - start_datetime
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         # Calculate the duration when updating as well
         start_time = validated_data.get('start_time', instance.start_time)
         end_time = validated_data.get('end_time', instance.end_time)
-        instance.duration = end_time - start_time
+        today = datetime.today().date()  # Common date for both times
+
+        # Combine date and time into datetime objects
+        start_datetime = datetime.combine(today, start_time)
+        end_datetime = datetime.combine(today, end_time)
+
+        # Calculate the difference (this will be a timedelta object)
+        instance.duration = end_datetime - start_datetime
         return super().update(instance, validated_data)
 
 
@@ -271,14 +288,29 @@ class AbsenceSerializer(serializers.ModelSerializer):
         # Calculate the duration and save it in the database
         start_time = validated_data.get('start_time')
         end_time = validated_data.get('end_time')
-        validated_data['duration'] = end_time - start_time
+        today = datetime.today().date()  # Common date for both times
+
+        # Combine date and time into datetime objects
+        start_datetime = datetime.combine(today, start_time)
+        end_datetime = datetime.combine(today, end_time)
+
+        # Calculate the difference (this will be a timedelta object)
+        validated_data["duration"] = end_datetime - start_datetime
+        
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         # Calculate the duration when updating as well
         start_time = validated_data.get('start_time', instance.start_time)
         end_time = validated_data.get('end_time', instance.end_time)
-        instance.duration = end_time - start_time
+        today = datetime.today().date()  # Common date for both times
+
+        # Combine date and time into datetime objects
+        start_datetime = datetime.combine(today, start_time)
+        end_datetime = datetime.combine(today, end_time)
+
+        # Calculate the difference (this will be a timedelta object)
+        instance.duration = end_datetime - start_datetime
         return super().update(instance, validated_data)
 
 class ExpenseSerializer(serializers.ModelSerializer):
