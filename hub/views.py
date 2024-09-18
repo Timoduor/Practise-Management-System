@@ -328,7 +328,7 @@ class TimesheetView(APIView):
 
          # If no week is provided, use current week starting Monday
         if week_start:
-            week_start = datetime.strptime(week_start, '%Y-%m-%d')
+            week_start = datetime.strptime(week_start, '%Y-%m-%d') -timedelta(days=current_date.weekday())
         else:
             week_start = current_date - timedelta(days=current_date.weekday())  # Get Monday of the current week
 
@@ -354,11 +354,23 @@ class TimesheetView(APIView):
             user = user, date__range=[week_start,week_end]
         ).values('expense_id', 'date', 'value', 'description','task_id','task__task_name')
 
+                # Convert timedelta to hours and minutes
+        def convert_timedelta_to_hours_minutes(duration):
+            if duration != 0:
+                total_seconds = duration.total_seconds()
+            else:
+                total_seconds = duration
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60) or "00"
+            return f"{hours}:{minutes} "
+    
 
         #Group entries by task_date
 
         for entry in work_entries:
             day_name = entry['date'].strftime('%A')
+            # Convert duration to hours and minutes
+            entry['duration'] = convert_timedelta_to_hours_minutes(entry['duration'])
 
             # Add an editable flag
             entry['editable'] = entry['date'] >= editable_date
@@ -368,9 +380,11 @@ class TimesheetView(APIView):
 
         for absence in absences:
             day_name = absence['absence_date'].strftime('%A')
+            # Convert duration to hours and minutes
+            absence['duration'] =convert_timedelta_to_hours_minutes(absence['duration'])
 
             # Add an editable flag
-            absence['editable'] = absence['date'] >= editable_date
+            absence['editable'] = absence['absence_date'] >= editable_date
             data[day_name]['absences'].append(absence)
 
         
@@ -389,11 +403,18 @@ class TimesheetView(APIView):
         total_expenses = expenses.aggregate(total_expenses = Sum('value'))['total_expenses'] or 0
 
 
+
+
+        # Use the function to format the total durations
+        formatted_work_duration = convert_timedelta_to_hours_minutes(total_work_hours)
+        formatted_absence_duration = convert_timedelta_to_hours_minutes(total_absence_hours)
+
+
         response_data = {
             'week_start' : week_start,
             'week_end': week_end,
-            'total_work_duration': total_work_hours,
-            'total_absence_duration': total_absence_hours,
+            'total_work_duration': formatted_work_duration,
+            'total_absence_duration': formatted_absence_duration,
             'total_expenses': total_expenses,
             'days': data
         }
