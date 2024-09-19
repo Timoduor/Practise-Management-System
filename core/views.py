@@ -86,7 +86,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         #Rememeber to switch http only back to true, you only set it to false to test on postman
         response.set_cookie(
-            'access_token' , data["access"], httponly= True, samesite='Strict', max_age= 60* 60 * 1
+            'access_token' , data["access"], httponly= False, samesite='Strict', max_age= 60* 60 * 1
         )
 
         response.set_cookie(
