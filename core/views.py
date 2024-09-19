@@ -5,7 +5,7 @@ from .serializers import *
 from rest_framework import generics,viewsets, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 # Create your views here.
@@ -86,23 +86,60 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         #Rememeber to switch http only back to true, you only set it to false to test on postman
         response.set_cookie(
-            'access_token' , data["access"], httponly= False, samesite='Strict'
+            'access_token' , data["access"], httponly= True, samesite='Strict', max_age= 60* 60 *3
         )
 
         response.set_cookie(
-            'refresh_token' , data["refresh"], httponly= False, samesite='Strict'
+            'refresh_token' , data["refresh"], httponly= True, samesite='Strict', max_age = 60*60* 24
         )
+        print(response)
 
         return response
 
-class LogoutView(APIView):
-    def post(self,request):
-        try:
-            refresh_token = request.data['refresh_token']
-            token = RefreshToken(refresh_token)
-            token.blacklist()
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self,request,*args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
 
-            return Response(status= status.HTTP_205_RESET_CONTENT)
+        if refresh_token:
+            request.data["refresh"] = refresh_token
+
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == 200:
+            access_token = response.data.get('access')
+            
+            response.set_cookie(
+                'access_token' , access_token, httponly= False, samesite='Strict', max_age= 60* 60 *3
+            )
+
+            print(response)
         
-        except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return response
+
+class CustomTokenVerifyView(TokenVerifyView):
+    def post(self,request, *args, **kwargs):
+        access_token = request.COOKIES.get("access_token")
+
+        if access_token:
+            request.data['token'] = access_token
+
+        return super().post(request,*args, **kwargs)
+
+class LogoutView(APIView):
+    # def post(self,request):
+    #     try:
+    #         refresh_token = request.data['refresh_token']
+    #         token = RefreshToken(refresh_token)
+    #         token.blacklist()
+
+    #         return Response(status= status.HTTP_205_RESET_CONTENT)
+        
+    #     except Exception as e:
+    #         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, *args, **kwargs):
+        response = Response(status= status.HTTP_204_NO_CONTENT)
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+
+        return response
