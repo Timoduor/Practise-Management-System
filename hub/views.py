@@ -391,7 +391,7 @@ class TimesheetView(APIView):
         #Group expenses by date
 
         for expense in expenses:
-            day_name = entry['date'].strftime('%A')
+            day_name = expense['date'].strftime('%A')
 
             # Add an editable flag
             expense['editable'] = expense['date'] >= editable_date
@@ -408,6 +408,12 @@ class TimesheetView(APIView):
         # Use the function to format the total durations
         formatted_work_duration = convert_timedelta_to_hours_minutes(total_work_hours)
         formatted_absence_duration = convert_timedelta_to_hours_minutes(total_absence_hours)
+        
+        #Fill data with all days of the week
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        for day in days_of_week:
+            if day not in data:
+                data[day] = {'work_entries': [], 'absences': [], 'expenses': []}
 
 
         response_data = {
