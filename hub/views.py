@@ -211,8 +211,39 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
-    
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Check if the task exists and set the related project and phase fields
+        task_id = data.get("task")
         
+        if task_id:
+            try:
+                task = Task.objects.get(pk=task_id)
+            except Task.DoesNotExist:
+                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update project and phase based on the task
+            data['project'] = task.project.project_id
+            data['phase'] = task.phase.phase_id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
 
 class LeaveTypeViewSet(viewsets.ModelViewSet):
     queryset = LeaveType.objects.all()
@@ -260,7 +291,31 @@ class AbsenceViewSet(viewsets.ModelViewSet):
         # Return the response
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
 
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+
+    
 class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
@@ -313,6 +368,40 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Check if the task exists and set the related project and phase fields
+        task_id = data.get("task")
+        
+        if task_id:
+            try:
+                task = Task.objects.get(pk=task_id)
+            except Task.DoesNotExist:
+                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update project and phase based on the task
+            data['project'] = task.project.project_id
+            data['phase'] = task.phase.phase_id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+    
 
 
 class TimesheetView(APIView):
@@ -344,11 +433,11 @@ class TimesheetView(APIView):
 
         work_entries = WorkEntries.objects.filter(
             user=user, date__range=[week_start,week_end]
-        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type' ,'task__task_name','task__project','task__project__project_name', 'description')
+        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type', 'task_id' ,'task__task_name','task__project','task__project__project_name', 'description')
 
         absences = Absence.objects.filter(
             user=user, absence_date__range=[week_start,week_end]
-        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type__name' ,'project_id','project__project_name', 'absence_description')
+        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type','leave_type__name' ,'project_id','project__project_name', 'absence_description')
         
         expenses = Expense.objects.filter(
             user = user, date__range=[week_start,week_end]
