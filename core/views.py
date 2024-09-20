@@ -86,7 +86,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         #Rememeber to switch http only back to true, you only set it to false to test on postman
         response.set_cookie(
-            'access_token' , data["access"], httponly= False, samesite='Strict', max_age= 60* 60 * 1
+            'access_token' , data["access"], httponly= False, samesite='Strict', max_age= 60* 60 * 2
         )
 
         response.set_cookie(
@@ -99,6 +99,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self,request,*args, **kwargs):
         refresh_token = request.COOKIES.get('refresh_token')
+        print(refresh_token)
 
         if refresh_token:
             request.data["refresh"] = refresh_token
@@ -109,7 +110,7 @@ class CustomTokenRefreshView(TokenRefreshView):
             access_token = response.data.get('access')
             
             response.set_cookie(
-                'access_token' , access_token, httponly= False, samesite='Strict', max_age= 60* 60 *3
+                'access_token' , access_token, httponly= False, samesite='Strict', max_age= 60* 60 * 3
             )
 
             print(response)
