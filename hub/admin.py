@@ -19,9 +19,9 @@ class ContactAdmin(admin.ModelAdmin):
         ("Associated Customer", {"fields": ["customer"]}),
         ("Role", {"fields": ["role"]}),
     ]
-    list_display = ('contact_name', 'contact_email', 'contact_phone', 'role', 'customer', 'created_at', 'updated_at')
-    search_fields = ('contact_name', 'contact_email', 'role')
-    list_filter = ('customer', 'role', 'is_deleted')
+    list_display = ('contact_name', 'contact_email', 'contact_phone', 'contact_role', 'customer', 'created_at', 'updated_at')
+    search_fields = ('contact_name', 'contact_email', 'contact_role')
+    list_filter = ('customer', 'contact_role', 'is_deleted')
 
 
 @admin.register(Project)

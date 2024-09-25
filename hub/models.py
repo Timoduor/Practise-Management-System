@@ -18,7 +18,7 @@ class Customer(SoftDeleteModel):
 class Sales(SoftDeleteModel):
     sales_id = models.AutoField(primary_key=True)
     sales_name = models.CharField(max_length=100)
-    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales")
     sales_description = models.TextField(null=True, blank=True)
     project_value = models.DecimalField(max_digits=10, decimal_places=2)
     expected_order_date = models.DateField()
@@ -200,7 +200,7 @@ class Contact(SoftDeleteModel):
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=15, blank=True, null=True)
     contact_address = models.TextField(blank=True, null=True)
-    role = models.CharField(max_length=50, blank=True, null=True)
+    contact_role = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"{self.contact_name} - {self.role} ({self.customer})"
