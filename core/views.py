@@ -58,6 +58,38 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer  
 
+    def get_queryset(self):
+        user = self.request.user
+        
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Employee.objects.all()
+      
+                case "INS":
+                  return Employee.objects.filter(entity__instance = user.employee_user.instance)
+        
+                case "ENT":
+                    return Employee.objects.filter(entity= user.employee_user.entity)
+
+                case "UNI":
+                    return Employee.objects.filter(unit= user.employee_user.unit)
+        
+        return Employee.objects.filter(entity = user.employee_user.entity)
+    # .values(
+        #     'id' , 
+        #     'user',
+        #     # 'user__first_name',
+        #     # 'user__last_name',
+        #     'instance',
+        #     'instance__name',
+        #     'entity',
+        #     'entity__name',
+        #     'unit',
+        #     'unit__name'
+        # )
+        
+
     def destroy(self, request, pk= None):
         user = get_object_or_404(Admin, pk= pk)
 
