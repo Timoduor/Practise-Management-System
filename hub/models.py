@@ -6,7 +6,7 @@ class Customer(SoftDeleteModel):
     customer_id = models.AutoField(primary_key=True)
     customer_name = models.CharField(max_length=100)
     customer_email = models.EmailField(unique=True)
-    customer_phone = models.CharField(max_length=15, blank=True, null=True)
+    customer_phone = models.CharField(max_length=20, blank=True, null=True)
     customer_address = models.TextField(blank=True, null=True)
 
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
@@ -24,13 +24,14 @@ class Sales(SoftDeleteModel):
     expected_order_date = models.DateField()
 
     SALES_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('APPROVED', 'Approved'),
-        ('CANCELLED', 'Cancelled'),
-        ('COMPLETED', 'Completed'),
+        ('LEAD', 'Lead'),
+        ('OPPORTUNITY', 'Opportunity'),
+        ('PROPOSAL', 'Proposal'),
+        ('CLOSED_REJECTED', 'Rejected'),
+        ('CLOSED_ACCPETED', 'Accepted')
     ]
     
-    sales_status = models.CharField(max_length=10, choices=SALES_STATUS_CHOICES, default='PENDING')
+    sales_status = models.CharField(max_length=20, choices=SALES_STATUS_CHOICES, default='PENDING')
     project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
     members = models.ManyToManyField(Employee, related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
@@ -198,7 +199,7 @@ class Contact(SoftDeleteModel):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="contacts")
     contact_name = models.CharField(max_length=100)
     contact_email = models.EmailField()
-    contact_phone = models.CharField(max_length=15, blank=True, null=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
     contact_address = models.TextField(blank=True, null=True)
     contact_role = models.CharField(max_length=50, blank=True, null=True)
 
