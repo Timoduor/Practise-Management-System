@@ -14,7 +14,7 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class SalesSerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
-    project_manager = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
 
     class Meta:
@@ -31,7 +31,7 @@ class SalesSerializer(serializers.ModelSerializer):
 
         # Check if the project manager belongs to the same instance as the sale's entity
         if project_manager and entity:
-            if project_manager.employee_entity != entity:
+            if project_manager.entity != entity:
                 raise serializers.ValidationError({
                     'project_manager': 'The selected project manager must belong to the same entity as the sale.'
                 })
@@ -127,6 +127,7 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+    project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     members = EmployeeSerializer(many=True, read_only=True)
     member_ids = serializers.PrimaryKeyRelatedField(
         many=True,  queryset=Employee.objects.all(), source='members'
@@ -137,8 +138,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'project_id', 'project_name', 'customer', 'project_description', 
-            'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 
-            'created_at', 'updated_at','members', 'member_ids', 'phases'
+            'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'project_value',
+            'created_at', 'updated_at', 'project_manager','members', 'member_ids', 'phases'
         ]
 
     def validate(self, data):
