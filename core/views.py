@@ -114,9 +114,9 @@ class EntityViewSet(viewsets.ModelViewSet):
                 case "INS":
                   return Entity.objects.filter(entity__instance = user.employee_user.instance)
                 case "ENT":
-                    return Unit.objects.filter(models.Q(id=user.employee_user.entity.id) | models.Q(parent_entity=user.employee_user.entity))  
+                    return Entity.objects.filter(models.Q(id=user.employee_user.entity.id) | models.Q(parent_entity=user.employee_user.entity))  
                 case "UNI":
-                    return Unit.objects.filter(entity= user.employee_user.entity)
+                    return Entity.objects.filter(entity= user.employee_user.entity)
 
         return Unit.objects.filter(entity = user.employee_user.entity)
 

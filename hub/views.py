@@ -11,7 +11,56 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from django.db.models import Sum
 
-class CustomerViewSet(viewsets.ModelViewSet):
+
+class CommonViewSet(viewsets.ModelViewSet):
+    def create(self, request, *args, **kwargs):
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+        # Set the user field to the logged-in user
+
+        data['last_updated_by_id'] = request.user.id
+        data['created_by_id'] = request.user.id
+
+        data['entity'] = request.user.employee_user.entity.id
+
+        if 'unit' not in data or not data['unit']:
+            data['unit'] = request.user.employee_user.unit.id
+        # Fetch the task instance
+
+        # Pass the data to the serializer and validate it
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Save the data
+        self.perform_create(serializer)
+
+        # Return the response
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class CustomerViewSet(CommonViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
@@ -53,7 +102,7 @@ class ContactViewSet(viewsets.ModelViewSet):
 
         return Contact.objects.filter(unit = user.employee_user.unit)
 
-class SalesViewSet(viewsets.ModelViewSet):
+class SalesViewSet(CommonViewSet):
     queryset = Sales.objects.all()
     serializer_class = SalesSerializer
     permission_classes = [IsAuthenticated]
@@ -72,10 +121,10 @@ class SalesViewSet(viewsets.ModelViewSet):
                 case "UNI":
                     return Sales.objects.filter(unit= user.employee_user.unit)
 
-        return Sales.objects.filter(sales_members = user.employee_user)
+        return Sales.objects.filter(entity= user.employee_user.entity)
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProjectViewSet(CommonViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -94,9 +143,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 case "UNI":
                     return Project.objects.filter(project__unit= user.employee_user.unit)
 
-        return Project.objects.filter(project_members = user.employee_user) 
+        return Project.objects.filter(entity= user.employee_user.entity) 
 
-class ProjectPhaseViewSet(viewsets.ModelViewSet):
+class ProjectPhaseViewSet(CommonViewSet):
     queryset = ProjectPhase.objects.all()
     serializer_class = ProjectPhaseSerializer
     permission_classes = [IsAuthenticated]
@@ -117,7 +166,7 @@ class ProjectPhaseViewSet(viewsets.ModelViewSet):
 
         return ProjectPhase.objects.filter(project__project_members = user.employee_user) 
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(CommonViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -138,7 +187,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         return Task.objects.filter(project = user.employee_user.project_members)
 
-class InvoiceViewSet(viewsets.ModelViewSet):
+class InvoiceViewSet(CommonViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated]
