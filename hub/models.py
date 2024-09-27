@@ -32,7 +32,7 @@ class Sales(SoftDeleteModel):
     ]
     
     sales_status = models.CharField(max_length=20, choices=SALES_STATUS_CHOICES, default='PENDING')
-    project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
+    project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
     members = models.ManyToManyField(Employee, related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
@@ -55,6 +55,8 @@ class Project(SoftDeleteModel):
 
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
+
+    project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="project_manager")
 
     members = models.ManyToManyField(Employee, related_name="project_members")
 
