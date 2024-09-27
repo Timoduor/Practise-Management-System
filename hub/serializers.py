@@ -130,7 +130,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     members = EmployeeSerializer(many=True, read_only=True)
     member_ids = serializers.PrimaryKeyRelatedField(
-        many=True,  queryset=Employee.objects.all(), source='members'
+        many=True,  queryset=Employee.objects.all(), source='members', required=False
     )
     phases = ProjectPhaseSerializer(many=True, read_only=True)
 
