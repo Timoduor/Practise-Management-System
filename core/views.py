@@ -104,9 +104,43 @@ class EntityViewSet(viewsets.ModelViewSet):
     queryset = Entity.objects.all()
     serializer_class = EntitySerializer
 
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Entity.objects.all()
+                case "INS":
+                  return Entity.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return Unit.objects.filter(models.Q(id=user.employee_user.entity.id) | models.Q(parent_entity=user.employee_user.entity))  
+                case "UNI":
+                    return Unit.objects.filter(entity= user.employee_user.entity)
+
+        return Unit.objects.filter(entity = user.employee_user.entity)
+
 class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Unit.objects.all()
+                case "INS":
+                  return Unit.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return Unit.objects.filter(entity= user.employee_user.entity)  
+                case "UNI":
+                    return Unit.objects.filter(unit= user.employee_user.unit)
+
+        return Unit.objects.filter(entity = user.employee_user.entity)
+
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
