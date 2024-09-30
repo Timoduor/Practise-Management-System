@@ -77,6 +77,8 @@ class ProjectPhase(SoftDeleteModel):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
 
+    members = models.ManyToManyField(Employee, blank=True,  related_name="phase_members")
+
     def __str__(self):
         return f"Phase: {self.phase_name} of {self.project.project_name}"
 
