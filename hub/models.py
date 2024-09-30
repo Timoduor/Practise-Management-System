@@ -88,7 +88,7 @@ class Task(SoftDeleteModel):
     task_name = models.CharField(max_length=100)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.CASCADE, related_name="tasks")
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
+    assigned_to = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
     task_description = models.TextField(null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
@@ -102,6 +102,37 @@ class Task(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.task_name} in {self.phase.phase_name}"
+
+
+class SalesTask(SoftDeleteModel):  
+    sales_task_id = models.AutoField(primary_key=True)
+    task_name = models.CharField(max_length=100)
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
+
+    TASK_TYPES = [
+        ('CALL', 'Call'),
+        ('MEETING', 'Meeting'),
+        ('TO_DO', 'Todo')
+    ]   
+
+
+    task_type = models.CharField(max_length=50, choices=TASK_TYPES, default='TO_DO')
+    
+    assigned_to = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_sales_tasks")
+    task_description = models.TextField(null=True, blank=True)
+
+    date = models.DateField(null=True, blank=True)
+    
+    TASK_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed')
+    ]
+    task_status = models.CharField(max_length=50, choices=TASK_STATUS_CHOICES, default='PENDING')
+
+    def __str__(self):
+            return f"{self.task_name} in {self.sale.sales_name if self.sale else 'No Sale'}"
+
 
 
 class WorkEntries(SoftDeleteModel):  

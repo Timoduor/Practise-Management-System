@@ -85,7 +85,7 @@ class SalesSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
 
     class Meta:
         model = Task
@@ -106,6 +106,16 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return data
 
+class SalesTaskSerializer(serializers.ModelSerializer):
+    sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all())
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
+
+    class Meta:
+        model = Task
+        fields = ['sales_task_id', 'task_name', 'task_type', 'assigned_to', 'sale', 'date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
+
+
+
 
 class ProjectPhaseSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
@@ -123,6 +133,8 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("End date must be after the start date.")
 
         return data
+    
+
 
 
 class ProjectSerializer(serializers.ModelSerializer):
