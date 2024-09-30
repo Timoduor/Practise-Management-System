@@ -208,11 +208,11 @@ class SalesTaskViewSet(CommonViewSet):
                 case "INS":
                   return SalesTask.objects.filter(entity__instance = user.employee_user.instance)
                 case "ENT":
-                    return SalesTask.objects.filter(project__entity= user.employee_user.entity)  
+                    return SalesTask.objects.filter(sales__entity= user.employee_user.entity)  
                 case "UNI":
-                    return SalesTask.objects.filter(project__unit= user.employee_user.unit)
+                    return SalesTask.objects.filter(sales__unit= user.employee_user.unit)
 
-        return SalesTask.objects.filter(project = user.employee_user.project_members)
+        return SalesTask.objects.filter(project = user.employee_user.sales_members)
 
 class InvoiceViewSet(CommonViewSet):
     queryset = Invoice.objects.all()
