@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
-from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer, LeaveTypeSerializer
+from .models import Customer, Contact, Sales, Project, SalesTask, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
+from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, SalesTaskSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer, LeaveTypeSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import  status
 from rest_framework.response import Response
@@ -192,6 +192,27 @@ class TaskViewSet(CommonViewSet):
                     return Task.objects.filter(project__unit= user.employee_user.unit)
 
         return Task.objects.filter(project = user.employee_user.project_members)
+    
+class SalesTaskViewSet(CommonViewSet):
+    queryset = SalesTask.objects.all()
+    serializer_class = SalesTaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                  return SalesTask.objects.all()
+                case "INS":
+                  return SalesTask.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return SalesTask.objects.filter(project__entity= user.employee_user.entity)  
+                case "UNI":
+                    return SalesTask.objects.filter(project__unit= user.employee_user.unit)
+
+        return SalesTask.objects.filter(project = user.employee_user.project_members)
 
 class InvoiceViewSet(CommonViewSet):
     queryset = Invoice.objects.all()
