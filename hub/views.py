@@ -21,10 +21,16 @@ class CommonViewSet(viewsets.ModelViewSet):
         data['last_updated_by_id'] = request.user.id
         data['created_by_id'] = request.user.id
 
-        data['entity'] = request.user.employee_user.entity.id
+        if hasattr(request.user, 'employee_user') and request.user.employee_user.entity:
+            data['entity'] = request.user.employee_user.entity.id
+        else:
+            data['entity'] = None
 
         if 'unit' not in data or not data['unit']:
-            data['unit'] = request.user.employee_user.unit.id
+            if hasattr(request.user, 'employee_user') and request.user.employee_user.unit:
+                data['unit'] = request.user.employee_user.unit.id
+            else:
+                data['unit'] = None
         # Fetch the task instance
 
         # Pass the data to the serializer and validate it
