@@ -1,7 +1,7 @@
 from datetime import datetime
 from rest_framework import serializers
 from core.models import User, Employee
-from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
+from .models import Customer, Contact, Sales, Project, SalesTask, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
 from core.serializers import EmployeeSerializer
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -111,7 +111,7 @@ class SalesTaskSerializer(serializers.ModelSerializer):
     assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
 
     class Meta:
-        model = Task
+        model = SalesTask
         fields = ['sales_task_id', 'task_name', 'task_type', 'assigned_to', 'sale', 'date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
 
 
