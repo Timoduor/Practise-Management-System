@@ -38,6 +38,9 @@ class Sales(SoftDeleteModel):
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
 
+    class Meta:
+        ordering = ['expected_order_date']
+
     def __str__(self):
         return f"Sales {self.sales_id}: {self.sales_name}"  
 
@@ -65,6 +68,9 @@ class Project(SoftDeleteModel):
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null=True)
 
+    class Meta:
+        ordering = ['start_date']
+    
     def __str__(self):
         return self.project_name
 
@@ -78,6 +84,9 @@ class ProjectPhase(SoftDeleteModel):
     end_date = models.DateField(null=True, blank=True)
 
     members = models.ManyToManyField(Employee, blank=True,  related_name="phase_members")
+
+    class Meta:
+        ordering = ['start_date']
 
     def __str__(self):
         return f"Phase: {self.phase_name} of {self.project.project_name}"
@@ -99,6 +108,8 @@ class Task(SoftDeleteModel):
         ('COMPLETED', 'Completed')
     ]
     task_status = models.CharField(max_length=50, choices=TASK_STATUS_CHOICES, default='PENDING')
+    class Meta:
+        ordering = ['due_date']
 
     def __str__(self):
         return f"{self.task_name} in {self.phase.phase_name}"
@@ -107,7 +118,7 @@ class Task(SoftDeleteModel):
 class SalesTask(SoftDeleteModel):  
     sales_task_id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=100)
-    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_tasks")
 
     TASK_TYPES = [
         ('CALL', 'Call'),
@@ -130,6 +141,9 @@ class SalesTask(SoftDeleteModel):
     ]
     task_status = models.CharField(max_length=50, choices=TASK_STATUS_CHOICES, default='PENDING')
 
+    class Meta:
+        ordering = ['date']
+
     def __str__(self):
             return f"{self.task_name} in {self.sale.sales_name if self.sale else 'No Sale'}"
 
@@ -147,6 +161,8 @@ class WorkEntries(SoftDeleteModel):
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+
+    
     
     TASK_TYPE_CHOICES = [
         ('CONSULTING', 'Consulting'),
