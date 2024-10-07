@@ -1,62 +1,17 @@
 from datetime import datetime
 from rest_framework import serializers
 from core.models import User, Employee
-from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
+from .models import Customer, Contact, Sales, Project, SalesTask, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
 from core.serializers import EmployeeSerializer
-class CustomerSerializer(serializers.ModelSerializer):
-    contacts = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    sales = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-
-    class Meta:
-        model = Customer
-        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales']
-
-    def validate(self, data):
-        entity = data.get('entity')
-        unit = data.get('unit')
-
-        if unit and entity:
-            if unit.entity != entity:
-                raise serializers.ValidationError({
-                    'unit': 'The selected unit must belong to the selected entity.'
-                })
-        
-        return data
-
 
 class ContactSerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
 
     class Meta:
         model = Contact
-        fields = ['contact_id', 'contact_name', 'contact_email', 'contact_phone', 'contact_address', 'role', 'customer', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['contact_id', 'contact_name', 'contact_email', 'contact_phone', 'contact_address', 'contact_role', 'customer', 'is_deleted', 'created_at', 'updated_at']
 
 
-class SalesSerializer(serializers.ModelSerializer):
-    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
-    project_manager = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
-    created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
-
-    class Meta:
-        model = Sales
-        fields = [
-            'sales_id', 'sales_name', 'sales_description', 'project_value', 
-            'expected_order_date', 'sales_status', 'customer', 'project_manager', 
-            'created_by', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at'
-        ]
-
-    def validate(self, data):
-        project_manager = data.get('project_manager')
-        entity = data.get('entity')
-
-        # Check if the project manager belongs to the same instance as the sale's entity
-        if project_manager and entity:
-            if project_manager.employee_entity != entity:
-                raise serializers.ValidationError({
-                    'project_manager': 'The selected project manager must belong to the same entity as the sale.'
-                })
-
-        return data
 
 
 # class ProjectSerializer(serializers.ModelSerializer):
@@ -105,11 +60,12 @@ class SalesSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
+    assigned_to_details = EmployeeSerializer(read_only = True)
 
     class Meta:
         model = Task
-        fields = ['task_id', 'task_name', 'project', 'phase', 'assigned_to', 'start_date', 'due_date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['task_id', 'task_name', 'project', 'phase', 'assigned_to','assigned_to_details' ,'start_date', 'due_date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
 
     def validate(self, data):
         start_date = data.get('start_date')
@@ -126,14 +82,33 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return data
 
+class SalesTaskSerializer(serializers.ModelSerializer):
+    sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all())
+    
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
+    assigned_to_details = EmployeeSerializer(read_only=True)
+   
+
+
+    class Meta:
+        model = SalesTask
+        fields = ['sales_task_id', 'task_name', 'task_type','assigned_to','assigned_to_details' ,'sale', 'date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
+
+
+
 
 class ProjectPhaseSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     tasks = TaskSerializer(many=True, read_only= True)
 
+    phase_members = EmployeeSerializer(many=True, read_only=True)
+    phase_member_ids = serializers.PrimaryKeyRelatedField(
+        many=True,  queryset=Employee.objects.all(), source='phase_members', required=False
+    )
+
     class Meta:
         model = ProjectPhase
-        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date', 'is_deleted', 'created_at', 'updated_at', 'tasks']
+        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date','phase_members','phase_member_ids', 'is_deleted', 'created_at', 'updated_at', 'tasks']
 
     def validate(self, data):
         start_date = data.get('start_date')
@@ -143,13 +118,42 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("End date must be after the start date.")
 
         return data
+    
+
+class SalesSerializer(serializers.ModelSerializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+    project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
+    created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    sales_tasks = SalesTaskSerializer(many=True , read_only=True)
+
+    class Meta:
+        model = Sales
+        fields = [
+            'sales_id', 'sales_name', 'sales_description', 'project_value', 
+            'expected_order_date', 'sales_status',  'sales_tasks','customer', 'project_manager', 
+            'created_by', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at'
+        ]
+
+    def validate(self, data):
+        project_manager = data.get('project_manager')
+        entity = data.get('entity')
+
+        # Check if the project manager belongs to the same instance as the sale's entity
+        if project_manager and entity:
+            if project_manager.entity != entity:
+                raise serializers.ValidationError({
+                    'project_manager': 'The selected project manager must belong to the same entity as the sale.'
+                })
+
+        return data
 
 
 class ProjectSerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+    project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     members = EmployeeSerializer(many=True, read_only=True)
     member_ids = serializers.PrimaryKeyRelatedField(
-        many=True,  queryset=Employee.objects.all(), source='members'
+        many=True,  queryset=Employee.objects.all(), source='members', required=False
     )
     phases = ProjectPhaseSerializer(many=True, read_only=True)
 
@@ -157,8 +161,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'project_id', 'project_name', 'customer', 'project_description', 
-            'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 
-            'created_at', 'updated_at','members', 'member_ids', 'phases'
+            'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'project_value',
+            'created_at', 'updated_at', 'project_manager','members', 'member_ids', 'phases'
         ]
 
     def validate(self, data):
@@ -204,6 +208,28 @@ class ProjectSerializer(serializers.ModelSerializer):
         return instance
 
 
+class CustomerSerializer(serializers.ModelSerializer):
+    contacts = ContactSerializer(many=True, read_only=True)
+    
+    sales = SalesSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales', 'projects']
+
+    def validate(self, data):
+        entity = data.get('entity')
+        unit = data.get('unit')
+
+        if unit and entity:
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'The selected unit must belong to the selected entity.'
+                })
+        
+        return data
+
 
 
 
@@ -220,8 +246,11 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
         start_time = data.get('start_time')
         end_time = data.get('end_time')
 
+
+
         if start_time and end_time and start_time > end_time:
             raise serializers.ValidationError("End time must be after the start time.")
+        
 
         project = data.get('project')
         phase = data.get('phase')
@@ -293,6 +322,8 @@ class AbsenceSerializer(serializers.ModelSerializer):
         # Calculate the duration and save it in the database
         start_time = validated_data.get('start_time')
         end_time = validated_data.get('end_time')
+
+        
         today = datetime.today().date()  # Common date for both times
 
         # Combine date and time into datetime objects

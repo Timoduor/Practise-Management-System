@@ -58,6 +58,38 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer  
 
+    def get_queryset(self):
+        user = self.request.user
+        
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Employee.objects.all()
+      
+                case "INS":
+                  return Employee.objects.filter(entity__instance = user.employee_user.instance)
+        
+                case "ENT":
+                    return Employee.objects.filter(entity= user.employee_user.entity)
+
+                case "UNI":
+                    return Employee.objects.filter(unit= user.employee_user.unit)
+        
+        return Employee.objects.filter(entity = user.employee_user.entity)
+    # .values(
+        #     'id' , 
+        #     'user',
+        #     # 'user__first_name',
+        #     # 'user__last_name',
+        #     'instance',
+        #     'instance__name',
+        #     'entity',
+        #     'entity__name',
+        #     'unit',
+        #     'unit__name'
+        # )
+        
+
     def destroy(self, request, pk= None):
         user = get_object_or_404(Admin, pk= pk)
 
@@ -72,9 +104,43 @@ class EntityViewSet(viewsets.ModelViewSet):
     queryset = Entity.objects.all()
     serializer_class = EntitySerializer
 
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Entity.objects.all()
+                case "INS":
+                  return Entity.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return Entity.objects.filter(models.Q(id=user.employee_user.entity.id) | models.Q(parent_entity=user.employee_user.entity))  
+                case "UNI":
+                    return Entity.objects.filter(entity= user.employee_user.entity)
+
+        return Unit.objects.filter(entity = user.employee_user.entity)
+
 class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    return Unit.objects.all()
+                case "INS":
+                  return Unit.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return Unit.objects.filter(entity= user.employee_user.entity)  
+                case "UNI":
+                    return Unit.objects.filter(unit= user.employee_user.unit)
+
+        return Unit.objects.filter(entity = user.employee_user.entity)
+
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -86,7 +152,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         #Rememeber to switch http only back to true, you only set it to false to test on postman
         response.set_cookie(
-            'access_token' , data["access"], httponly= False, samesite='Strict', max_age= 60* 60 * 1
+            'access_token' , data["access"], httponly= False, samesite='Strict', max_age= 60* 60 * 2
         )
 
         response.set_cookie(
@@ -99,6 +165,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self,request,*args, **kwargs):
         refresh_token = request.COOKIES.get('refresh_token')
+        print(refresh_token)
 
         if refresh_token:
             request.data["refresh"] = refresh_token
@@ -109,7 +176,7 @@ class CustomTokenRefreshView(TokenRefreshView):
             access_token = response.data.get('access')
             
             response.set_cookie(
-                'access_token' , access_token, httponly= False, samesite='Strict', max_age= 60* 60 *3
+                'access_token' , access_token, httponly= False, samesite='Strict', max_age= 60* 60 * 3
             )
 
             print(response)

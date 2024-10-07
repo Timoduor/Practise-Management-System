@@ -67,10 +67,15 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         return user
 
 class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Use `user` field
+    user_detail = UserSerializer(source='user', read_only=True)  # For nested serialization of user details if needed
+
+
+    # user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    # user = UserSerializer(read_only =True)
     class Meta:
         model = Employee
-        fields = ['id','user', 'instance', 'entity', 'unit']
+        fields = ['id','user', 'user_detail', 'instance', 'entity', 'unit']
 
 class AdminSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())

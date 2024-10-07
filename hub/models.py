@@ -6,7 +6,7 @@ class Customer(SoftDeleteModel):
     customer_id = models.AutoField(primary_key=True)
     customer_name = models.CharField(max_length=100)
     customer_email = models.EmailField(unique=True)
-    customer_phone = models.CharField(max_length=15, blank=True, null=True)
+    customer_phone = models.CharField(max_length=20, blank=True, null=True)
     customer_address = models.TextField(blank=True, null=True)
 
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
@@ -15,20 +15,62 @@ class Customer(SoftDeleteModel):
     def __str__(self):
         return self.customer_name
 
+class Sales(SoftDeleteModel):
+    sales_id = models.AutoField(primary_key=True)
+    sales_name = models.CharField(max_length=100)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales")
+    sales_description = models.TextField(null=True, blank=True)
+    project_value = models.DecimalField(max_digits=10, decimal_places=2)
+    expected_order_date = models.DateField()
+
+    SALES_STATUS_CHOICES = [
+        ('LEAD', 'Lead'),
+        ('OPPORTUNITY', 'Opportunity'),
+        ('PROPOSAL', 'Proposal'),
+        ('CLOSED_REJECTED', 'Rejected'),
+        ('CLOSED_ACCPETED', 'Accepted')
+    ]
+    
+    sales_status = models.CharField(max_length=20, choices=SALES_STATUS_CHOICES, default='PENDING')
+    project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
+    members = models.ManyToManyField(Employee,blank=True ,related_name="sales_members")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
+    entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['expected_order_date']
+
+    def __str__(self):
+        return f"Sales {self.sales_id}: {self.sales_name}"  
+
+
+
+
 
 class Project(SoftDeleteModel):
     project_id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=100)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="projects")
     project_description = models.TextField(blank=True, null=True)
+
+    project_value = models.DecimalField(max_digits=10, decimal_places=2)
+
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
 
-    members = models.ManyToManyField(Employee, related_name="project_members")
+    project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="project_manager")
+
+    members = models.ManyToManyField(Employee, blank=True,  related_name="project_members")
+
+    sale = models.ForeignKey(Sales, on_delete=models.CASCADE, null=True, blank=True, related_name="related_project")
 
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null=True)
 
+    class Meta:
+        ordering = ['start_date']
+    
     def __str__(self):
         return self.project_name
 
@@ -41,6 +83,11 @@ class ProjectPhase(SoftDeleteModel):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
 
+    members = models.ManyToManyField(Employee, blank=True,  related_name="phase_members")
+
+    class Meta:
+        ordering = ['start_date']
+
     def __str__(self):
         return f"Phase: {self.phase_name} of {self.project.project_name}"
 
@@ -50,7 +97,7 @@ class Task(SoftDeleteModel):
     task_name = models.CharField(max_length=100)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.CASCADE, related_name="tasks")
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
+    assigned_to = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
     task_description = models.TextField(null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
@@ -61,9 +108,45 @@ class Task(SoftDeleteModel):
         ('COMPLETED', 'Completed')
     ]
     task_status = models.CharField(max_length=50, choices=TASK_STATUS_CHOICES, default='PENDING')
+    class Meta:
+        ordering = ['due_date']
 
     def __str__(self):
         return f"{self.task_name} in {self.phase.phase_name}"
+
+
+class SalesTask(SoftDeleteModel):  
+    sales_task_id = models.AutoField(primary_key=True)
+    task_name = models.CharField(max_length=100)
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_tasks")
+
+    TASK_TYPES = [
+        ('CALL', 'Call'),
+        ('MEETING', 'Meeting'),
+        ('TO_DO', 'Todo')
+    ]   
+
+
+    task_type = models.CharField(max_length=50, choices=TASK_TYPES, default='TO_DO')
+    
+    assigned_to = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_sales_tasks")
+    task_description = models.TextField(null=True, blank=True)
+
+    date = models.DateField(null=True, blank=True)
+    
+    TASK_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed')
+    ]
+    task_status = models.CharField(max_length=50, choices=TASK_STATUS_CHOICES, default='PENDING')
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+            return f"{self.task_name} in {self.sale.sales_name if self.sale else 'No Sale'}"
+
 
 
 class WorkEntries(SoftDeleteModel):  
@@ -78,6 +161,8 @@ class WorkEntries(SoftDeleteModel):
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+
+    
     
     TASK_TYPE_CHOICES = [
         ('CONSULTING', 'Consulting'),
@@ -165,37 +250,13 @@ class Contact(SoftDeleteModel):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="contacts")
     contact_name = models.CharField(max_length=100)
     contact_email = models.EmailField()
-    contact_phone = models.CharField(max_length=15, blank=True, null=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
     contact_address = models.TextField(blank=True, null=True)
-    role = models.CharField(max_length=50, blank=True, null=True)
+    contact_role = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"{self.contact_name} - {self.role} ({self.customer})"
 
-
-class Sales(SoftDeleteModel):
-    sales_id = models.AutoField(primary_key=True)
-    sales_name = models.CharField(max_length=100)
-    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
-    sales_description = models.TextField(null=True, blank=True)
-    project_value = models.DecimalField(max_digits=10, decimal_places=2)
-    expected_order_date = models.DateField()
-
-    SALES_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('APPROVED', 'Approved'),
-        ('CANCELLED', 'Cancelled'),
-        ('COMPLETED', 'Completed'),
-    ]
-    sales_status = models.CharField(max_length=10, choices=SALES_STATUS_CHOICES, default='PENDING')
-    project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
-    members = models.ManyToManyField(Employee, related_name="sales_members")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
-    entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
-    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
-
-    def __str__(self):
-        return f"Sales {self.sales_id}: {self.sales_name}"  
 
 
 class Invoice(SoftDeleteModel):

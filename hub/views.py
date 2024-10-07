@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import Customer, Contact, Sales, Project, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
-from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer, LeaveTypeSerializer
+from .models import Customer, Contact, Sales, Project, SalesTask, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
+from .serializers import CustomerSerializer, ContactSerializer, SalesSerializer, ProjectSerializer, SalesTaskSerializer, TaskSerializer, InvoiceSerializer, ProjectPhaseSerializer, WorkEntriesSerializer,AbsenceSerializer,ExpenseSerializer, LeaveTypeSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import  status
 from rest_framework.response import Response
@@ -11,7 +11,62 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from django.db.models import Sum
 
-class CustomerViewSet(viewsets.ModelViewSet):
+
+class CommonViewSet(viewsets.ModelViewSet):
+    def create(self, request, *args, **kwargs):
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+        # Set the user field to the logged-in user
+
+        data['last_updated_by_id'] = request.user.id
+        data['created_by_id'] = request.user.id
+
+        if hasattr(request.user, 'employee_user') and request.user.employee_user.entity:
+            data['entity'] = request.user.employee_user.entity.id
+        else:
+            data['entity'] = None
+
+        if 'unit' not in data or not data['unit']:
+            if hasattr(request.user, 'employee_user') and request.user.employee_user.unit:
+                data['unit'] = request.user.employee_user.unit.id
+            else:
+                data['unit'] = None
+        # Fetch the task instance
+
+        # Pass the data to the serializer and validate it
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Save the data
+        self.perform_create(serializer)
+
+        # Return the response
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class CustomerViewSet(CommonViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
@@ -53,7 +108,7 @@ class ContactViewSet(viewsets.ModelViewSet):
 
         return Contact.objects.filter(unit = user.employee_user.unit)
 
-class SalesViewSet(viewsets.ModelViewSet):
+class SalesViewSet(CommonViewSet):
     queryset = Sales.objects.all()
     serializer_class = SalesSerializer
     permission_classes = [IsAuthenticated]
@@ -72,10 +127,10 @@ class SalesViewSet(viewsets.ModelViewSet):
                 case "UNI":
                     return Sales.objects.filter(unit= user.employee_user.unit)
 
-        return Sales.objects.filter(sales_members = user.employee_user)
+        return Sales.objects.filter(entity= user.employee_user.entity)
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProjectViewSet(CommonViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -94,9 +149,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 case "UNI":
                     return Project.objects.filter(project__unit= user.employee_user.unit)
 
-        return Project.objects.filter(project_members = user.employee_user) 
+        return Project.objects.filter(entity= user.employee_user.entity) 
 
-class ProjectPhaseViewSet(viewsets.ModelViewSet):
+class ProjectPhaseViewSet(CommonViewSet):
     queryset = ProjectPhase.objects.all()
     serializer_class = ProjectPhaseSerializer
     permission_classes = [IsAuthenticated]
@@ -117,7 +172,7 @@ class ProjectPhaseViewSet(viewsets.ModelViewSet):
 
         return ProjectPhase.objects.filter(project__project_members = user.employee_user) 
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(CommonViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -137,8 +192,29 @@ class TaskViewSet(viewsets.ModelViewSet):
                     return Task.objects.filter(project__unit= user.employee_user.unit)
 
         return Task.objects.filter(project = user.employee_user.project_members)
+    
+class SalesTaskViewSet(CommonViewSet):
+    queryset = SalesTask.objects.all()
+    serializer_class = SalesTaskSerializer
+    permission_classes = [IsAuthenticated]
 
-class InvoiceViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                  return SalesTask.objects.all()
+                case "INS":
+                  return SalesTask.objects.filter(entity__instance = user.employee_user.instance)
+                case "ENT":
+                    return SalesTask.objects.filter(sales__entity= user.employee_user.entity)  
+                case "UNI":
+                    return SalesTask.objects.filter(sales__unit= user.employee_user.unit)
+
+        return SalesTask.objects.filter(project = user.employee_user.sales_members)
+
+class InvoiceViewSet(CommonViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated]
@@ -211,8 +287,39 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
-    
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Check if the task exists and set the related project and phase fields
+        task_id = data.get("task")
         
+        if task_id:
+            try:
+                task = Task.objects.get(pk=task_id)
+            except Task.DoesNotExist:
+                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update project and phase based on the task
+            data['project'] = task.project.project_id
+            data['phase'] = task.phase.phase_id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
 
 class LeaveTypeViewSet(viewsets.ModelViewSet):
     queryset = LeaveType.objects.all()
@@ -260,7 +367,31 @@ class AbsenceViewSet(viewsets.ModelViewSet):
         # Return the response
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
 
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+
+    
 class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
@@ -313,6 +444,40 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
+    def update(self, request, *args, **kwargs):
+        # Get the instance to be updated using the primary key from URL kwargs
+        instance = self.get_object()
+
+        # Make a mutable copy of the request data
+        data = request.data.copy()
+
+        # Set the user fields to the logged-in user for tracking updates
+        data['last_updated_by_id'] = request.user.id
+
+        # Check if the task exists and set the related project and phase fields
+        task_id = data.get("task")
+        
+        if task_id:
+            try:
+                task = Task.objects.get(pk=task_id)
+            except Task.DoesNotExist:
+                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update project and phase based on the task
+            data['project'] = task.project.project_id
+            data['phase'] = task.phase.phase_id
+
+        # Pass the data to the serializer along with the instance to update
+        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer.is_valid(raise_exception=True)
+
+        # Save the updated data
+        self.perform_update(serializer)
+
+        # Return the updated instance data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+    
 
 
 class TimesheetView(APIView):
@@ -344,11 +509,11 @@ class TimesheetView(APIView):
 
         work_entries = WorkEntries.objects.filter(
             user=user, date__range=[week_start,week_end]
-        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type' ,'task__task_name','task__project','task__project__project_name', 'description')
+        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type', 'task_id' ,'task__task_name','task__project','task__project__project_name', 'description')
 
         absences = Absence.objects.filter(
             user=user, absence_date__range=[week_start,week_end]
-        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type__name' ,'project_id','project__project_name', 'absence_description')
+        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type','leave_type__name' ,'project_id','project__project_name', 'absence_description')
         
         expenses = Expense.objects.filter(
             user = user, date__range=[week_start,week_end]
@@ -391,7 +556,7 @@ class TimesheetView(APIView):
         #Group expenses by date
 
         for expense in expenses:
-            day_name = entry['date'].strftime('%A')
+            day_name = expense['date'].strftime('%A')
 
             # Add an editable flag
             expense['editable'] = expense['date'] >= editable_date
@@ -408,6 +573,12 @@ class TimesheetView(APIView):
         # Use the function to format the total durations
         formatted_work_duration = convert_timedelta_to_hours_minutes(total_work_hours)
         formatted_absence_duration = convert_timedelta_to_hours_minutes(total_absence_hours)
+        
+        #Fill data with all days of the week
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        for day in days_of_week:
+            if day not in data:
+                data[day] = {'work_entries': [], 'absences': [], 'expenses': []}
 
 
         response_data = {
