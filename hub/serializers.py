@@ -101,14 +101,14 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     tasks = TaskSerializer(many=True, read_only= True)
 
-    phase_members = EmployeeSerializer(many=True, read_only=True)
-    phase_member_ids = serializers.PrimaryKeyRelatedField(
+    members = EmployeeSerializer(many=True, read_only=True)
+    member_ids = serializers.PrimaryKeyRelatedField(
         many=True,  queryset=Employee.objects.all(), source='phase_members', required=False
     )
 
     class Meta:
         model = ProjectPhase
-        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date','phase_members','phase_member_ids', 'is_deleted', 'created_at', 'updated_at', 'tasks']
+        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date','members','member_ids', 'is_deleted', 'created_at', 'updated_at', 'tasks']
 
     def validate(self, data):
         start_date = data.get('start_date')
