@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 # Create your views here.
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -193,20 +194,23 @@ class CustomTokenVerifyView(TokenVerifyView):
         return super().post(request,*args, **kwargs)
 
 class LogoutView(APIView):
-    # def post(self,request):
-    #     try:
-    #         refresh_token = request.data['refresh_token']
-    #         token = RefreshToken(refresh_token)
-    #         token.blacklist()
 
-    #         return Response(status= status.HTTP_205_RESET_CONTENT)
+    permission_classes = (AllowAny,)
+    
+    def post(self,request):
+        try:
+            refresh_token = request.data['refresh_token']
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status= status.HTTP_205_RESET_CONTENT)
         
-    #     except Exception as e:
-    #         return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request, *args, **kwargs):
-        response = Response(status= status.HTTP_204_NO_CONTENT)
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
+    # def post(self, request, *args, **kwargs):
+    #     response = Response(status= status.HTTP_204_NO_CONTENT)
+    #     response.delete_cookie("access_token")
+    #     response.delete_cookie("refresh_token")
 
-        return response
+    #     return response

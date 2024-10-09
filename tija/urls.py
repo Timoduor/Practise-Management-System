@@ -49,7 +49,9 @@ urlpatterns = [
     path("api/token/", CustomTokenObtainPairView.as_view(), name = "login"),
     path("api/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("api/token/verify/", CustomTokenVerifyView.as_view(), name="token_refresh"),
-    path("api/logout/", LogoutView.as_view(), name="logout"),
+    path("auth/logout/", LogoutView.as_view(), name="logout"),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.jwt')),
 
     
 

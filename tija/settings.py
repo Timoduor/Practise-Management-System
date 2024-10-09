@@ -39,6 +39,15 @@ DATABASES = {
         "PASSWORD": "postgres",
         "HOST": "127.0.0.1",
         "PORT": "5432",
+    },
+    #FOR RUNNING ON TESSY'S MACHINE DELETE LATER
+    "backup": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "practice_management",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "192.168.110.208",
+        "PORT": "5432",
     }
 }
 
@@ -59,6 +68,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
+    'djoser'
 ]
 
 MIDDLEWARE = [
@@ -155,3 +165,22 @@ SIMPLE_JWT = {
   'SIGNING_KEY' : SECRET_KEY,
   # ...
 }
+
+DJOSER = {
+    "PASSWORD_RESET_CONFIRM_URL": "auth/password/reset-password-confirmation/?uid={uid}&token={token}",
+    "ACTIVATION_URL": "#/activate/{uid}/{token}",
+    "SEND_ACTIVATION_EMAIL": True,
+    "SERIALIZERS": {
+        'user' : 'core.serializers.UserSerializer',
+        'user_create': 'core.serializers.UserSerializer',  # For registration
+        'current_user': 'core.serializers.UserSerializer', 
+    },
+    "LOGIN_FIELD": "email",
+}
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+SITE_NAME = "TIJA Practice Management System"
+
+#Change this in production
+DOMAIN = 'localhost:3000'
