@@ -157,11 +157,19 @@ class WorkEntries(SoftDeleteModel):
     end_time = models.TimeField()
     duration = models.DurationField(editable=False, null=True, blank=True)    
     description = models.TextField(null=True, blank=True)
-    
+
+
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+
+
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
-    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)    
 
+
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
+    sales_task = models.ForeignKey(SalesTask, on_delete=models.SET_NULL, null=True, blank=True)
+    
     
     
     TASK_TYPE_CHOICES = [
@@ -176,6 +184,22 @@ class WorkEntries(SoftDeleteModel):
 
     def __str__(self):
         return f"Work entry on {self.project} - {self.phase} - {self.task}"
+    
+    def clean(self):
+        """
+        Validate that only valid combinations of relationships are set.
+        """
+        if (self.project or self.task) and (self.sale or self.sales_task):
+            raise ValidationError("A WorkEntry can relate to either a Project/Task or Sale/SalesTask, but not both.")
+
+        if self.task and not self.project:
+            raise ValidationError("A Task must be associated with a Project.")
+
+        if self.sales_task and not self.sale:
+            raise ValidationError("A SalesTask must be associated with a Sale.")
+
+        if not any([self.project, self.sale, self.customer]):
+            raise ValidationError("A WorkEntry must be related to at least one of Project, Sale, or Customer.")
     
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
@@ -211,10 +235,17 @@ class Absence(SoftDeleteModel):
     absence_description = models.TextField(null=True, blank=True)
 
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL ,null=True, blank=True)
     leave_type = models.ForeignKey(LeaveType, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user} - {self.leave_type} on {self.absence_date}"
+
+    def clean(self):
+        if (self.project or self.task) and (self.sale or self.sales_task):
+            raise ValidationError("An Absence can relate to either a Project or Sale, but not both.")
+        if not any[self.project, self.sale]:
+            raise ValidationError("A WorkEntry must be related to either a Project or Sale")
     
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
@@ -234,15 +265,35 @@ class Absence(SoftDeleteModel):
 class Expense(SoftDeleteModel):  
     expense_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL ,null=True, blank=True)
+    sales_task =models.ForeignKey(SalesTask, on_delete=models.SET_NULL ,null=True, blank=True)
     date = models.DateField()
     value = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Expense {self.expense_id} - {self.value} on {self.project}"
+    
+    def clean(self):
+        """
+        Validate that only valid combinations of relationships are set.
+        """
+        if (self.project or self.phase or self.task) and (self.sale or self.sales_task):
+            raise ValidationError("An Expense can relate to either a Project/Task or Sale/SalesTask, but not both.")
+
+        if self.task and not self.project:
+            raise ValidationError("A Task must be associated with a Project.")
+
+        if self.sales_task and not self.sale:
+            raise ValidationError("A SalesTask must be associated with a Sale.")
+
+        if not any([self.project, self.sale, self.customer]):
+            raise ValidationError("An Expense must be related to at least one of Project, Sale, or Customer.")
 
 
 class Contact(SoftDeleteModel):
