@@ -234,13 +234,25 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 
 class WorkEntriesSerializer(serializers.ModelSerializer):
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all())
-    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all())
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False , allow_null=True)
+    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all(), required=False , allow_null=True)
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), required=False , allow_null=True)
 
+    sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), required=False , allow_null=True)
+    sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), required=False , allow_null=True)
+
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
     class Meta:
         model = WorkEntries
-        fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'project', 'phase', 'task', 'task_type', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'customer','project', 'phase', 'task', "sale" ,'sales_task' ,'task_type', 'is_deleted', 'created_at', 'updated_at']
+
+        extra_kwargs = {
+            'project': {'required': False, 'allow_null': True},
+            'phase' : {'required': False, 'allow_null': True},
+            'task': {'required': False, 'allow_null': True},
+            'sale': {'required': False, 'allow_null': True},
+            'sales_task': {'required': False, 'allow_null': True},
+        }
 
     def validate(self, data):
         start_time = data.get('start_time')
@@ -303,11 +315,18 @@ class LeaveTypeSerializer(serializers.ModelSerializer):
 
 class AbsenceSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
+    sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), required=False, allow_null=True)
+
     leave_type = serializers.PrimaryKeyRelatedField(queryset=LeaveType.objects.all(), required=False)
 
     class Meta:
         model = Absence
-        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project', 'leave_type', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project','sale' ,'leave_type', 'is_deleted', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'project': {'required': False, 'allow_null': True},    
+            'sale': {'required': False, 'allow_null': True},
+
+        }
 
     def validate(self, data):
         start_time = data.get('start_time')
@@ -350,13 +369,25 @@ class AbsenceSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 class ExpenseSerializer(serializers.ModelSerializer):
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all())
-    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all())
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False, allow_null=True)
+    phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all(), allow_null=True)
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), allow_null=True)
+
+    sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), allow_null=True)
+    sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), allow_null=True)
+
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(),allow_null=True)
 
     class Meta:
         model = Expense
-        fields = ['expense_id', 'user', 'project', 'phase', 'task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['expense_id', 'user','customer' ,'project', 'phase', 'task','sale','sales_task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'project': {'required': False, 'allow_null': True},
+            'phase' : {'required': False, 'allow_null': True},
+            'task': {'required': False, 'allow_null': True},
+            'sale': {'required': False, 'allow_null': True},
+            'sales_task': {'required': False, 'allow_null': True},
+        }
 
     def validate(self, data):
         project = data.get('project')
