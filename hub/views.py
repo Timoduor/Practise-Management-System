@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.utils.timezone import now
+from django.db.models import Q
 from datetime import datetime, timedelta
 from collections import defaultdict
 from django.db.models import Sum
@@ -88,7 +89,74 @@ class CustomerViewSet(CommonViewSet):
                     return Customer.objects.filter(unit= user.employee_user.unit)
 
         return Customer.objects.filter(unit = user.employee_user.unit)
+    
+    @action(detail=True, methods=['get'], url_path='summary')
+    def get_ribbon(self,request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        print("PK.",pk)
+        entity = self.request.user.employee_user.entity.id
+        try:
+            customer = Customer.objects.get(customer_id=pk)
+            print("Customer", customer)
+        except Customer.DoesNotExist:
+            return Response({"error": "Customer not found"}, status=404)
+        
+        projects = Project.objects.filter(customer=customer, is_deleted=False)
+        sales = Sales.objects.filter(customer=customer, is_deleted=False)
 
+        
+        project_count = projects.count()
+        sales_count = sales.count()
+
+        expected_project_financials = Project.objects.filter(customer=customer, is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
+        expected_sales_financials = Sales.objects.filter(customer=customer, is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
+        received_sales_financials = Sales.objects.filter(customer=customer, sales_status= "CLOSED_ACCEPTED" ,is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
+
+
+
+
+        tasks_count = Task.objects.filter(project__in=projects, is_deleted=False).count()
+        sales_tasks_count = SalesTask.objects.filter(sale__in=sales, is_deleted=False).count()
+
+            # Get counts for completed tasks
+        completed_tasks_count = Task.objects.filter(project__in=projects, task_status="COMPLETED", is_deleted=False).count()
+        completed_sales_tasks_count = SalesTask.objects.filter(sale__in=sales, task_status="COMPLETED", is_deleted=False).count()
+
+        active_tasks_count = tasks_count - completed_tasks_count
+        active_sales_tasks_count = sales_tasks_count - completed_sales_tasks_count
+        total_expenses = Expense.objects.filter(customer=customer).aggregate(total_expense=Sum('value'))['total_expense'] or 0
+
+
+
+        return Response({
+            'projects': project_count,
+            'sales' : sales_count,
+            "sales_tasks" : {
+                "active" : active_sales_tasks_count,
+                "completed" : completed_sales_tasks_count,
+                "total": sales_tasks_count,},
+            "tasks" : {
+                "active" : active_tasks_count ,
+                "completed": completed_tasks_count,
+                "total": tasks_count ,
+            },
+
+            "financials" : {
+                "projects" : {
+                    "expected_projects_value" : expected_project_financials,
+                },
+                "sales" : {
+                    "expected_sales_value " : expected_sales_financials,
+                    "accepted_sales_value" : received_sales_financials,
+                },
+                "total_expenses" : total_expenses,
+                
+            },
+
+  
+
+
+        })
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
@@ -145,6 +213,67 @@ class SalesViewSet(CommonViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Sales.DoesNotExist:
             return Response({'detail': 'Sale not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def get_sales_dashboard(self, request, *args, **kwargs):
+
+        current_date = now()
+        current_month = current_date.month
+        current_year = current_date.year
+        entity = self.request.user.employee_user.entity.id
+
+        # Filter sales and tasks based on the current month
+        sales_this_month = Sales.objects.filter(
+            expected_order_date__month=current_month,
+            expected_order_date__year=current_year,
+            sales_status="CLOSED_ACCEPTED",
+            is_deleted=False,
+            entity=entity
+        ).aggregate(total_sales=Sum('project_value'))['total_sales'] or 0
+
+        estimated_sales = Sales.objects.filter(
+            expected_order_date__month=current_month,
+            expected_order_date__year=current_year,
+            sales_status="OPPORTUNITY",
+            is_deleted=False,
+            entity=entity
+        ).aggregate(total_estimated=Sum('project_value'))['total_estimated'] or 0
+
+        # Sales with tasks needing attention (IN_PROGRESS or PENDING)
+        cases_needing_attention = SalesTask.objects.filter(
+            sale__expected_order_date__month=current_month,
+            sale__expected_order_date__year=current_year,
+            task_status__in=["IN_PROGRESS", "PENDING"],
+            sale__is_deleted=False,
+            sale__entity=entity
+        ).count()
+
+        # Total sales opportunities this month
+        total_sales_opportunities = Sales.objects.filter(
+            expected_order_date__month=current_month,
+            expected_order_date__year=current_year,
+            is_deleted=False,
+            entity=entity
+        ).count()
+
+        # Calculate hit rate
+        closed_sales_count = Sales.objects.filter(
+            expected_order_date__month=current_month,
+            expected_order_date__year=current_year,
+            sales_status="CLOSED_ACCEPTED",
+            is_deleted=False,
+            entity=entity
+        ).count()
+        hit_rate = (closed_sales_count / total_sales_opportunities * 100) if total_sales_opportunities else 0
+
+        return Response({
+            "sales_this_month": f"{sales_this_month:.2f} €",
+            "estimated_sales_this_month": f"{estimated_sales:.2f} €",
+            "cases_needing_attention": cases_needing_attention,
+            "hit_rate_this_month": f"{hit_rate:.0f} %",
+            "entity" : entity,
+        })
 
 
 
@@ -218,6 +347,62 @@ class ProjectViewSet(CommonViewSet):
             return Response(response_data, status=status.HTTP_200_OK)
         except Project.DoesNotExist:
             return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    
+
+
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def get_projects_dashboard(self, request, *args, **kwargs):
+        entity = self.request.user.employee_user.entity.id
+        
+        # Get the current date and extract month and year
+        current_date = now()
+
+        # Ongoing projects (current date is between start_date and end_date)
+        ongoing_projects = Project.objects.filter(
+            Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
+            is_deleted=False,
+            entity=entity
+        ).count()
+
+        # Estimated project value for ongoing projects in the current month
+        estimated_project_value = Project.objects.filter(
+            Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
+            is_deleted=False,
+            entity=entity
+        ).aggregate(total_value=Sum('project_value'))['total_value'] or 0
+
+        # Projects with tasks needing attention (IN_PROGRESS or PENDING) for ongoing projects
+        projects_needing_attention = Task.objects.filter(
+            project__in=Project.objects.filter(
+                Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
+                is_deleted=False,
+                entity=entity
+            ),
+            task_status__in=["IN_PROGRESS", "PENDING"],
+            is_deleted=False
+        ).count()
+
+        # Total projects opportunities this month (ongoing projects)
+        total_projects_opportunities = ongoing_projects
+
+        # Completed projects count this month (projects with end date in the current month)
+        completed_projects_count = Project.objects.filter(
+            end_date__month=current_date.month,
+            end_date__year=current_date.year,
+            is_deleted=False,
+            entity=entity
+        ).count()
+
+        # Calculate completion rate
+        completion_rate = (completed_projects_count / total_projects_opportunities * 100) if total_projects_opportunities else 0
+
+        return Response({
+            "projects_ongoing_this_month": ongoing_projects,
+            "estimated_project_value": f"{estimated_project_value:.2f} €",
+            "projects_needing_attention": projects_needing_attention,
+            "completion_rate_this_month": f"{completion_rate:.0f} %"
+        })
 
 
 
