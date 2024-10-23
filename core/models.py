@@ -6,6 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 
 
 class SoftDeleteQuerySet(models.QuerySet):
+
     def delete(self):
         return super().update(is_deleted=True)
 
@@ -181,7 +182,7 @@ class Employee (SoftDeleteModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employee_user")
 
     instance = models.ForeignKey("Instance", on_delete=models.CASCADE)
-    entity = models.ForeignKey("Entity", on_delete=models.CASCADE)
+    entity = models.ForeignKey("Entity", on_delete=models.CASCADE, blank=True, null=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null= True)
 
 
