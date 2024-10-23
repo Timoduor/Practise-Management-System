@@ -812,15 +812,15 @@ class TimesheetView(APIView):
 
         work_entries = WorkEntries.objects.filter(
             user=user, date__range=[week_start,week_end]
-        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type', 'task_id' ,'task__task_name','task__project','task__project__project_name', 'description')
+        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type','customer__customer_name' , 'task_id' ,'task__task_name','project__project_name','phase__phase_name','sale', 'sale__sales_name','sales_task__task_name' ,'description')
 
         absences = Absence.objects.filter(
             user=user, absence_date__range=[week_start,week_end]
-        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type','leave_type__name' ,'project_id','project__project_name', 'absence_description')
+        ).values('absence_id','absence_date', 'start_time', 'end_time','duration','leave_type','leave_type__name' ,'project_id','project__project_name', 'sale', 'sale__sales_name', 'absence_description')
         
         expenses = Expense.objects.filter(
             user = user, date__range=[week_start,week_end]
-        ).values('expense_id', 'date', 'value', 'description','task_id','task__task_name')
+        ).values('expense_id', 'date', 'value', 'description', 'task_id' ,'task__task_name','customer__customer_name' ,'project__project_name','phase__phase_name','sale', 'sale__sales_name', 'sales_task_id', 'sales_task__task_name')
 
                 # Convert timedelta to hours and minutes
         def convert_timedelta_to_hours_minutes(duration):
