@@ -5,6 +5,9 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
+import string
+from django.core.mail import send_mail
+import secrets
 
 
 class SoftDeleteMixin:
@@ -16,10 +19,14 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     employee_instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all(),  required=False)
     employee_entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(),  required=False)
     employee_unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False)
+
+    instance_name = serializers.CharField(write_only=True, required=False)
+    industry = serializers.CharField(write_only=True, required=False)
     class Meta:
         model = User
-        fields = ['id','email','password', 'first_name', 'last_name', 'other_names', 'phone_number', 'address', 'dob', 'is_staff', 'is_superuser', 'is_active', 'employee_instance', 'employee_entity', 'employee_unit' ]
-        extra_kwargs = {'password': {'write_only': True},
+        fields = ['id','email','password', 'first_name', 'last_name', 'other_names', 'phone_number', 'address', 'dob', 'is_staff', 'is_superuser', 'is_active', 'employee_instance', 'employee_entity', 'employee_unit', 
+                'instance_name', 'industry' ]
+        extra_kwargs = {'password': {'write_only': True, 'required': False},
                     }
         
     def validate(self, data):
@@ -45,25 +52,106 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         return data
 
     def create(self, validated_data):
-        employee_instance = validated_data.pop('employee_instance', None)
-        employee_entity = validated_data.pop('employee_entity', None)
-        employee_unit = validated_data.pop('employee_unit', None)
+        request_user = self.context['request'].user
+
+        employee_instance = validated_data.pop('employee_instance', None) or getattr(request_user.employee_user, 'instance', None)
+        employee_entity = validated_data.pop('employee_entity', None) or getattr(request_user.employee_user, 'entity', None)
+        employee_unit = validated_data.pop('employee_unit', None) or getattr(request_user.employee_user, 'unit', None)
+        
+        # Instance name and Industry for the creation of an instance with the first user
+        
+        industry = validated_data.pop("industry", None)
+        instance_name = validated_data.pop("instance_name", None)
+
+        password = validated_data.get('password')
+
+        #Actual creation of the user object
         user = User.objects.create(**validated_data)
-        user.set_password(validated_data['password'])
-        user.save()
+        if(password):
+            user.set_password(validated_data['password'])
+        else:
+            alphabet = string.ascii_letters + string.digits + string.punctuation
+            random_password = ''.join(secrets.choice(alphabet) for i in range(12))
+            user.set_password(random_password) 
+            send_mail(
+            subject='Your New Account Details',
+            message=f'Hello {user.first_name},\n\nYour account has been created successfully. Your login password is: {random_password}\nPlease change your password after logging in for the first time.\n\nBest regards,\nYour Company',
+            from_email='noreply@yourdomain.com',  # Replace with your from email address
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
 
-        if user.is_staff:
-            admin_type, created = AdminType.objects.get_or_create(name="INS")
-            Admin.objects.create(user=user, admin_type=admin_type)
 
-        if 'employee_instance' in validated_data:
-            Employee.objects.create(
-                user = user,
-                instance = employee_instance,
-                entity = employee_entity,
-                unit = employee_unit
+         # Check if this is the first user for the given instance
+        if employee_instance:
+            if not Employee.objects.filter(instance=employee_instance).exists():
+                user.is_staff = True
+                user.save()
 
-            )
+                # First user in the instance (Instance Admin flow)
+                admin_type, created = AdminType.objects.get_or_create(name="INS")
+                #Creating the instance Admin Object
+                Admin.objects.create(
+                    user=user,
+                    admin_type=admin_type,
+                    jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
+                    jurisdiction_object_id= employee_instance.id,
+                    created_by=user,
+                    last_updated_by=user
+                )
+            else:
+                # Add as a regular user to the existing instance
+                #Create the employee object
+                if self.context['request'].user.is_staff:
+                    user.save()
+                    Employee.objects.create(
+                        user=user,
+                        instance=employee_instance,
+                        entity=employee_entity,
+                        unit=employee_unit
+                    )
+                else:
+                    raise serializers.ValidationError({
+                        'authorization': 'Only instance admins can create new users.'
+                    })
+
+        else:
+            # Create the instance if it's the first user and instance details are provided
+            if instance_name and industry:
+                user.is_staff = True  # Mark the first user as admin
+                user.save()
+
+                instance = Instance.objects.create(
+                    name=instance_name,
+                    code=f"{instance_name[:3].upper()}{User.objects.count()}"[:15],
+                    industry=industry,
+                    created_by=user,
+                    last_updated_by=user
+                )
+
+                # Make the first user the instance admin
+                admin_type, created = AdminType.objects.get_or_create(name="INS")
+                Admin.objects.create(
+                    user=user,
+                    admin_type=admin_type,
+                    jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
+                    jurisdiction_object_id=instance.id,
+                    created_by=user,
+                    last_updated_by=user
+                )
+
+                # Create an Employee record for the instance admin
+                Employee.objects.create(
+                    user=user,
+                    instance=instance,
+                    entity=None,
+                    unit=None
+                )
+            else:
+                raise serializers.ValidationError({
+                    'instance': 'Instance details are required for the first user registration.'
+                })
+
         return user
 
 class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
