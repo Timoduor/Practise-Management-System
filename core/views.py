@@ -68,7 +68,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                     return Employee.objects.all()
       
                 case "INS":
-                  return Employee.objects.filter(entity__instance = user.employee_user.instance)
+                  return Employee.objects.filter(instance = user.employee_user.instance)
         
                 case "ENT":
                     return Employee.objects.filter(entity= user.employee_user.entity)
@@ -113,7 +113,7 @@ class EntityViewSet(viewsets.ModelViewSet):
                 case "SUP":
                     return Entity.objects.all()
                 case "INS":
-                  return Entity.objects.filter(entity__instance = user.employee_user.instance)
+                  return Entity.objects.filter(instance = user.employee_user.instance)
                 case "ENT":
                     return Entity.objects.filter(models.Q(id=user.employee_user.entity.id) | models.Q(parent_entity=user.employee_user.entity))  
                 case "UNI":
