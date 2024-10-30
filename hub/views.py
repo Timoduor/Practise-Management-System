@@ -24,10 +24,11 @@ class CommonViewSet(viewsets.ModelViewSet):
         data['last_updated_by_id'] = request.user.id
         data['created_by_id'] = request.user.id
 
-        if hasattr(request.user, 'employee_user') and request.user.employee_user.entity:
-            data['entity'] = request.user.employee_user.entity.id
-        else:
-            data['entity'] = None
+        if 'entity' not in data or not data['entity']:
+            if hasattr(request.user, 'employee_user') and request.user.employee_user.entity:
+                data['entity'] = request.user.employee_user.entity.id
+            else:
+                data['entity'] = None
 
         if 'unit' not in data or not data['unit']:
             if hasattr(request.user, 'employee_user') and request.user.employee_user.unit:
@@ -221,7 +222,32 @@ class SalesViewSet(CommonViewSet):
         current_date = now()
         current_month = current_date.month
         current_year = current_date.year
-        entity = self.request.user.employee_user.entity.id
+        
+        user = self.request.user
+
+                # Set the filtering based on admin type
+        sales_filter = {}
+        tasks_filter = {}
+
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    # No additional filter needed for "SUP" as they can see all sales
+                    pass
+                case "INS":
+                    sales_filter = {"entity__instance": user.employee_user.instance}
+                    tasks_filter = {"sale__entity__instance": user.employee_user.instance}
+                case "ENT":
+                    sales_filter = {"entity": user.employee_user.entity}
+                    tasks_filter = {"sale__entity": user.employee_user.entity}
+                case "UNI":
+                    sales_filter = {"unit": user.employee_user.unit}
+                    tasks_filter = {"sale__unit": user.employee_user.unit}
+        else:
+            # For non-staff users, default to their specific entity
+            sales_filter = {"entity": user.employee_user.entity}
+            tasks_filter = {"sale__entity": user.employee_user.entity}
+
 
         # Filter sales and tasks based on the current month
         sales_this_month = Sales.objects.filter(
@@ -229,7 +255,7 @@ class SalesViewSet(CommonViewSet):
             expected_order_date__year=current_year,
             sales_status="CLOSED_ACCEPTED",
             is_deleted=False,
-            entity=entity
+            **sales_filter
         ).aggregate(total_sales=Sum('project_value'))['total_sales'] or 0
 
         estimated_sales = Sales.objects.filter(
@@ -237,7 +263,7 @@ class SalesViewSet(CommonViewSet):
             expected_order_date__year=current_year,
             sales_status="OPPORTUNITY",
             is_deleted=False,
-            entity=entity
+            **sales_filter,
         ).aggregate(total_estimated=Sum('project_value'))['total_estimated'] or 0
 
         # Sales with tasks needing attention (IN_PROGRESS or PENDING)
@@ -246,7 +272,7 @@ class SalesViewSet(CommonViewSet):
             sale__expected_order_date__year=current_year,
             task_status__in=["IN_PROGRESS", "PENDING"],
             sale__is_deleted=False,
-            sale__entity=entity
+            **tasks_filter
         ).count()
 
         # Total sales opportunities this month
@@ -254,7 +280,7 @@ class SalesViewSet(CommonViewSet):
             expected_order_date__month=current_month,
             expected_order_date__year=current_year,
             is_deleted=False,
-            entity=entity
+            **sales_filter
         ).count()
 
         # Calculate hit rate
@@ -263,7 +289,7 @@ class SalesViewSet(CommonViewSet):
             expected_order_date__year=current_year,
             sales_status="CLOSED_ACCEPTED",
             is_deleted=False,
-            entity=entity
+            **sales_filter
         ).count()
         hit_rate = (closed_sales_count / total_sales_opportunities * 100) if total_sales_opportunities else 0
 
@@ -353,23 +379,42 @@ class ProjectViewSet(CommonViewSet):
 
     @action(detail=False, methods=['get'], url_path='dashboard')
     def get_projects_dashboard(self, request, *args, **kwargs):
-        entity = self.request.user.employee_user.entity.id
+        user = self.request.user
         
         # Get the current date and extract month and year
         current_date = now()
+         # Initialize filter dictionary based on admin type
+        project_filter = {}
+
+        # Apply filtering based on user’s admin level
+        if user.is_staff:
+            match user.admin_user.admin_type.name:
+                case "SUP":
+                    # SUP has access to all projects
+                    pass
+                case "INS":
+                    project_filter = {"entity__instance": user.employee_user.instance}
+                case "ENT":
+                    project_filter = {"entity": user.employee_user.entity}
+                case "UNI":
+                    project_filter = {"unit": user.employee_user.unit}
+        else:
+            # Default filter for non-staff users
+            project_filter = {"entity": user.employee_user.entity}
+
 
         # Ongoing projects (current date is between start_date and end_date)
         ongoing_projects = Project.objects.filter(
             Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
             is_deleted=False,
-            entity=entity
+            **project_filter
         ).count()
 
         # Estimated project value for ongoing projects in the current month
         estimated_project_value = Project.objects.filter(
             Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
             is_deleted=False,
-            entity=entity
+            **project_filter
         ).aggregate(total_value=Sum('project_value'))['total_value'] or 0
 
         # Projects with tasks needing attention (IN_PROGRESS or PENDING) for ongoing projects
@@ -377,7 +422,7 @@ class ProjectViewSet(CommonViewSet):
             project__in=Project.objects.filter(
                 Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
                 is_deleted=False,
-                entity=entity
+                **project_filter
             ),
             task_status__in=["IN_PROGRESS", "PENDING"],
             is_deleted=False
@@ -391,7 +436,7 @@ class ProjectViewSet(CommonViewSet):
             end_date__month=current_date.month,
             end_date__year=current_date.year,
             is_deleted=False,
-            entity=entity
+            **project_filter
         ).count()
 
         # Calculate completion rate

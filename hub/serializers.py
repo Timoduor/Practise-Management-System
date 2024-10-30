@@ -1,71 +1,91 @@
 from datetime import datetime
 from rest_framework import serializers
-from core.models import User, Employee
+from core.models import Entity, Unit, User, Employee
 from .models import Customer, Contact, Sales, Project, SalesTask, Task, Invoice, ProjectPhase, WorkEntries, Absence, Expense, LeaveType
 from core.serializers import EmployeeSerializer
 
-class ContactSerializer(serializers.ModelSerializer):
+class SoftDeleteBaseSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    last_updated_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        validated_data['last_updated_by'] = self.context['request'].user
+        return super().create(validated_data)
+    
+
+    def update(self, validated_data):
+        validated_data['last_updated_by'] = self.context['request'].user
+        return super().update(validated_data)
+    
+    class Meta:
+        abstract = True
+        fields =['created_by', 'last_updated_by', 'created_at', 'updated_at']
+
+class ContactSerializer(SoftDeleteBaseSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Contact
-        fields = ['contact_id', 'contact_name', 'contact_email', 'contact_phone', 'contact_address', 'contact_role', 'customer', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['contact_id', 'contact_name', 'contact_email', 'contact_phone', 'contact_address', 'contact_role', 'customer', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
 
 
 
-# class ProjectSerializer(serializers.ModelSerializer):
-#     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
-#     members = EmployeeSerializer(many=True, read_only=True)
-#     member_ids = serializers.PrimaryKeyRelatedField(
-#         many=True, write_only=True, queryset=Employee.objects.all(), source='members'
-#     )
+class ProjectSerializer(SoftDeleteBaseSerializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+    members = EmployeeSerializer(many=True, read_only=True)
+    member_ids = serializers.PrimaryKeyRelatedField(
+        many=True, write_only=True, queryset=Employee.objects.all(), source='members'
+    )
 
-#     class Meta:
-#         model = Project
-#         fields = ['project_id', 'project_name', 'customer', 'project_description', 'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'members', 'member_ids']
+    class Meta(SoftDeleteBaseSerializer.Meta):
+        model = Project
+        fields = ['project_id', 'project_name', 'customer', 'project_description', 'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'members', 'member_ids'] + SoftDeleteBaseSerializer.Meta.fields
 
-#     def validate(self, data):
-#         start_date = data.get('start_date')
-#         end_date = data.get('end_date')
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
         
         
-#         # Get the project instance from the context (if updating)
-#         project_instance = self.instance
-#         # Get the instance of the project (from project or request data)
-#         project_instance = project_instance.entity.instance if project_instance else data['entity'].instance
+        # Get the project instance from the context (if updating)
+        project_instance = self.instance
+        # Get the instance of the project (from project or request data)
+        project_instance = project_instance.entity.instance if project_instance else data['entity'].instance
 
-#         # Ensure employees are from the same instance as the project
-#         employees = data.get('members')
-#         for employee in employees:
-#             if employee.instance != project_instance:
-#                 raise serializers.ValidationError(
-#                     f"Employee {employee.user} does not belong to the same instance as the project."
-#                 )
+        # Ensure employees are from the same instance as the project
+        employees = data.get('members')
+        for employee in employees:
+            if employee.instance != project_instance:
+                raise serializers.ValidationError(
+                    f"Employee {employee.user} does not belong to the same instance as the project."
+                )
 
 
-#         if start_date and end_date and start_date > end_date:
-#             raise serializers.ValidationError("End date must be after the start date.")
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError("End date must be after the start date.")
 
-#         entity = data.get('entity')
-#         unit = data.get('unit')
+        entity = data.get('entity')
+        unit = data.get('unit')
 
-#         if unit and entity:
-#             if unit.entity != entity:
-#                 raise serializers.ValidationError({
-#                     'unit': 'The selected unit must belong to the selected entity.'
-#                 })
+        if unit and entity:
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'The selected unit must belong to the selected entity.'
+                })
 
-#         return data
+        return data
 
-class TaskSerializer(serializers.ModelSerializer):
+class TaskSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     assigned_to_details = EmployeeSerializer(read_only = True)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Task
-        fields = ['task_id', 'task_name', 'project', 'phase', 'assigned_to','assigned_to_details' ,'start_date', 'due_date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['task_id', 'task_name', 'project', 'phase', 'assigned_to','assigned_to_details' ,'start_date', 'due_date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         start_date = data.get('start_date')
@@ -82,7 +102,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return data
 
-class SalesTaskSerializer(serializers.ModelSerializer):
+class SalesTaskSerializer(SoftDeleteBaseSerializer):
     sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all())
     
     assigned_to = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
@@ -90,14 +110,14 @@ class SalesTaskSerializer(serializers.ModelSerializer):
    
 
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = SalesTask
-        fields = ['sales_task_id', 'task_name', 'task_type','assigned_to','assigned_to_details' ,'sale', 'date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['sales_task_id', 'task_name', 'task_type','assigned_to','assigned_to_details' ,'sale', 'date', 'task_description', 'task_status', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
 
 
 
-class ProjectPhaseSerializer(serializers.ModelSerializer):
+class ProjectPhaseSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     tasks = TaskSerializer(many=True, read_only= True)
 
@@ -106,9 +126,9 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
         many=True,  queryset=Employee.objects.all(), source='phase_members', required=False
     )
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = ProjectPhase
-        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date','members','member_ids', 'is_deleted', 'created_at', 'updated_at', 'tasks']
+        fields = ['phase_id', 'phase_name', 'project', 'phase_description', 'start_date', 'end_date','members','member_ids', 'is_deleted', 'created_at', 'updated_at', 'tasks'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         start_date = data.get('start_date')
@@ -120,19 +140,19 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
         return data
     
 
-class SalesSerializer(serializers.ModelSerializer):
+class SalesSerializer(SoftDeleteBaseSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
     project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
     sales_tasks = SalesTaskSerializer(many=True , read_only=True)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Sales
         fields = [
             'sales_id', 'sales_name', 'sales_description', 'project_value', 
             'expected_order_date', 'sales_status',  'sales_tasks','customer', 'project_manager', 
             'created_by', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at'
-        ]
+        ] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         project_manager = data.get('project_manager')
@@ -148,7 +168,7 @@ class SalesSerializer(serializers.ModelSerializer):
         return data
 
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectSerializer(SoftDeleteBaseSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
     project_manager = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), required=False)
     members = EmployeeSerializer(many=True, read_only=True)
@@ -157,13 +177,13 @@ class ProjectSerializer(serializers.ModelSerializer):
     )
     phases = ProjectPhaseSerializer(many=True, read_only=True)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Project
         fields = [
             'project_id', 'project_name', 'customer', 'project_description', 
             'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'project_value',
             'created_at', 'updated_at', 'project_manager','members', 'member_ids', 'phases'
-        ]
+        ] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         start_date = data.get('start_date')
@@ -171,7 +191,21 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         # Get the project instance (for update operations) or entity instance (for create operations)
         project_instance = self.instance
-        project_instance = project_instance.entity.instance if project_instance else data['entity'].instance
+        
+        
+        if project_instance:
+            # For update operations, get the instance from the project
+            project_instance = project_instance.entity.instance
+        else:
+            # For create operations, check if entity exists and has an instance
+            entity = data.get('entity')
+            if entity and hasattr(entity, 'instance'):
+                project_instance = entity.instance
+            else:
+                raise serializers.ValidationError("Entity instance must be provided for project creation.")
+
+
+        # project_instance = project_instance.entity.instance if project_instance else data['entity'].instance
 
         # Validate that all employees in 'member_ids' belong to the same instance as the project
         employees = data.get('members', [])
@@ -208,15 +242,18 @@ class ProjectSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CustomerSerializer(serializers.ModelSerializer):
+class CustomerSerializer(SoftDeleteBaseSerializer):
     contacts = ContactSerializer(many=True, read_only=True)
     
     sales = SalesSerializer(many=True, read_only=True)
     projects = ProjectSerializer(many=True, read_only=True)
 
-    class Meta:
+    entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(), required=False, allow_null=True)
+    unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False, allow_null=True)
+
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Customer
-        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales', 'projects']
+        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales', 'projects'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         entity = data.get('entity')
@@ -233,7 +270,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 
 
-class WorkEntriesSerializer(serializers.ModelSerializer):
+class WorkEntriesSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False , allow_null=True)
     phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all(), required=False , allow_null=True)
     task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), required=False , allow_null=True)
@@ -242,9 +279,9 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
     sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), required=False , allow_null=True)
 
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = WorkEntries
-        fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'customer','project', 'phase', 'task', "sale" ,'sales_task' ,'task_type', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'customer','project', 'phase', 'task', "sale" ,'sales_task' ,'task_type', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
         extra_kwargs = {
             'project': {'required': False, 'allow_null': True},
@@ -307,21 +344,21 @@ class WorkEntriesSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class LeaveTypeSerializer(serializers.ModelSerializer):
-    class Meta:
+class LeaveTypeSerializer(SoftDeleteBaseSerializer):
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = LeaveType
-        fields = ['id', 'name', 'description', 'is_paid', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'is_paid', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
 
-class AbsenceSerializer(serializers.ModelSerializer):
+class AbsenceSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
     sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), required=False, allow_null=True)
 
     leave_type = serializers.PrimaryKeyRelatedField(queryset=LeaveType.objects.all(), required=False)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Absence
-        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project','sale' ,'leave_type', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project','sale' ,'leave_type', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
         extra_kwargs = {
             'project': {'required': False, 'allow_null': True},    
             'sale': {'required': False, 'allow_null': True},
@@ -368,7 +405,7 @@ class AbsenceSerializer(serializers.ModelSerializer):
         instance.duration = end_datetime - start_datetime
         return super().update(instance, validated_data)
 
-class ExpenseSerializer(serializers.ModelSerializer):
+class ExpenseSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False, allow_null=True)
     phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all(), allow_null=True)
     task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), allow_null=True)
@@ -378,9 +415,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(),allow_null=True)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Expense
-        fields = ['expense_id', 'user','customer' ,'project', 'phase', 'task','sale','sales_task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['expense_id', 'user','customer' ,'project', 'phase', 'task','sale','sales_task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
         extra_kwargs = {
             'project': {'required': False, 'allow_null': True},
             'phase' : {'required': False, 'allow_null': True},
@@ -402,13 +439,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         return data
 
-class InvoiceSerializer(serializers.ModelSerializer):
+class InvoiceSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(), required=False)
 
-    class Meta:
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Invoice
-        fields = ['invoice_id', 'project', 'customer', 'invoice_amount', 'invoice_date', 'paid_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at']
+        fields = ['invoice_id', 'project', 'customer', 'invoice_amount', 'invoice_date', 'paid_status', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         project = data.get('project')
