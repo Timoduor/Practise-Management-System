@@ -298,7 +298,7 @@ class SalesViewSet(CommonViewSet):
             "estimated_sales_this_month": f"{estimated_sales:.2f} €",
             "cases_needing_attention": cases_needing_attention,
             "hit_rate_this_month": f"{hit_rate:.0f} %",
-            "entity" : entity,
+            "entity" : user.employee_user.entity,
         })
 
 
