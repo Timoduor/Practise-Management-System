@@ -70,7 +70,7 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
             employee_instance = None
             employee_entity = None
             employee_unit = None
-            
+
         # Retrieve optional instance data for the first user in an instance
         industry = validated_data.pop("industry", None)
         instance_name = validated_data.pop("instance_name", None)
@@ -205,6 +205,12 @@ class EntitySerializer(serializers.ModelSerializer, SoftDeleteMixin):
             'id', 'name', 'entity_type', 'description', 'instance', 'parent_entity', 'is_deleted', 
             'created_at', 'updated_at', 'last_updated_by', 'created_by', "units"
         ]
+
+    def create(self, validated_data):
+        user = self.context["request"]. user
+        validated_data['instance'] = user.employee_user.instance 
+
+        return super().create(validated_data)
 
 # Serializer for Instance model with nested EntitySerializer for related entities
 class InstanceSerializer(serializers.ModelSerializer, SoftDeleteMixin):
