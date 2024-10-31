@@ -62,10 +62,15 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         request_user = self.context['request'].user
 
         # Retrieve employee fields from validated data or use default from request user
-        employee_instance = validated_data.pop('employee_instance', None) or getattr(request_user.employee_user, 'instance', None)
-        employee_entity = validated_data.pop('employee_entity', None) or getattr(request_user.employee_user, 'entity', None)
-        employee_unit = validated_data.pop('employee_unit', None) or getattr(request_user.employee_user, 'unit', None)
-
+        if request_user.is_authenticated and hasattr(request_user, 'employee_user'):
+            employee_instance = validated_data.pop('employee_instance', None) or getattr(request_user.employee_user, 'instance', None)
+            employee_entity = validated_data.pop('employee_entity', None) or getattr(request_user.employee_user, 'entity', None)
+            employee_unit = validated_data.pop('employee_unit', None) or getattr(request_user.employee_user, 'unit', None)
+        else:
+            employee_instance = None
+            employee_entity = None
+            employee_unit = None
+            
         # Retrieve optional instance data for the first user in an instance
         industry = validated_data.pop("industry", None)
         instance_name = validated_data.pop("instance_name", None)
