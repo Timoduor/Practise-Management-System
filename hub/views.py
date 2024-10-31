@@ -95,7 +95,7 @@ class CustomerViewSet(CommonViewSet):
     def get_ribbon(self,request, *args, **kwargs):
         pk = kwargs.get('pk')
         print("PK.",pk)
-        entity = self.request.user.employee_user.entity.id
+        # entity = self.request.user.employee_user.entity.id
         try:
             customer = Customer.objects.get(customer_id=pk)
             print("Customer", customer)
