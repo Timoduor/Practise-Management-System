@@ -1,6 +1,7 @@
 from datetime import datetime
 from django.db import models
 from core.models import SoftDeleteModel, Entity, Unit, User, Employee
+from django.core.exceptions import ValidationError
 
 class Customer(SoftDeleteModel):
     customer_id = models.AutoField(primary_key=True)
@@ -35,6 +36,7 @@ class Sales(SoftDeleteModel):
     project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
     members = models.ManyToManyField(Employee,blank=True ,related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
+    
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
 
