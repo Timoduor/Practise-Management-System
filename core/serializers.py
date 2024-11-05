@@ -163,6 +163,8 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 
         return user
 
+
+
 # Serializer for Employee model, including nested UserSerializer for user details
 class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Use `user` field
@@ -176,14 +178,168 @@ class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         model = Employee
         fields = ['id', 'user', 'user_detail', 'instance', 'entity', 'unit']
 
+    def validate(self, data):
+        print("Data before validation:", self.initial_data)
+        validated_data = super().validate(data)
+        print("Data after validation:", validated_data)
+        return validated_data
+
+    def update(self, instance, validated_data):
+        # Get the request user from the context
+        request_user = self.context['request'].user
+        print(request_user)
+
+        # Check if the request user is either an admin or the user linked to this Employee instance
+        if request_user.is_staff or request_user == instance.user:
+            # Pop fields specific to Employee relationships
+            employee_instance = validated_data.pop('employee_instance', None)
+            employee_entity = validated_data.pop('employee_entity', None)
+            employee_unit = validated_data.pop('employee_unit', None)
+
+            print(instance)
+            print("employee_entity", employee_entity)
+            print("unit", employee_unit)
+            print(validated_data)
+
+            # Update Employee-related fields if provided
+            if employee_instance:
+                instance.instance = employee_instance
+                print("Instance", instance)
+            if employee_entity:
+                instance.entity = employee_entity
+                print("Entity", entity)
+            if employee_unit:
+                instance.unit = employee_unit
+                print("Unit", unit)
+            # Save changes to Employee instance
+            instance.save()
+            print(instance.save)
+
+            # Update User-related fields for the linked user object
+            user_data = {key: validated_data[key] for key in validated_data if hasattr(instance.user, key)}
+            for attr, value in user_data.items():
+                setattr(instance.user, attr, value)
+            instance.user.save()
+
+            # Return updated Employee instance
+            return instance
+        else:
+            # Raise error if not authorized to perform the update
+            raise serializers.ValidationError({
+                'authorization': 'You are not authorized to update this employee data.'
+            })
+
+   
+
 # Serializer for Admin model with SoftDeleteMixin
 class AdminSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Primary key field for user
+    user_detail = UserSerializer(source="user", read_only=True)
     admin_type = serializers.SlugRelatedField(slug_field='name', queryset=AdminType.objects.all())  # Admin type field
+    jurisdiction_name = serializers.SerializerMethodField() 
 
     class Meta:
         model = Admin
-        fields = ['id', 'user', 'admin_type', 'jurisdiction_content_type', 'jurisdiction_object_id']
+        fields = ['id', 'user','user_detail' ,'admin_type', 'jurisdiction_content_type', 'jurisdiction_object_id', "jurisdiction_name"]
+
+
+    def get_jurisdiction_name(self, obj):
+        """
+        Returns the name of the instance, entity, or unit based on the admin type.
+        """
+        if obj.admin_type.name == "INS" and obj.jurisdiction_object_id:
+            try:
+                instance = Instance.objects.get(pk=obj.jurisdiction_object_id)
+                return instance.name
+            except Instance.DoesNotExist:
+                return None
+        elif obj.admin_type.name == "ENT" and obj.jurisdiction_object_id:
+            try:
+                entity = Entity.objects.get(pk=obj.jurisdiction_object_id)
+                return entity.name
+            except Entity.DoesNotExist:
+                return None
+        elif obj.admin_type.name == "UNI" and obj.jurisdiction_object_id:
+            try:
+                unit = Unit.objects.get(pk=obj.jurisdiction_object_id)
+                return unit.name
+            except Unit.DoesNotExist:
+                return None
+        return None
+   
+    def validate(self, data):
+        # Ensure 'user' is an ID
+        user_id = data['user']
+        
+        # If `user` is a User instance instead of an ID, replace it with its ID
+        if isinstance(user_id, User):
+            user_id = user_id.id
+        data['user'] = user_id  # Assign back the ID to data['user']
+
+        # Fetch the full User instance with related employee fields
+        try:
+            user = User.objects.select_related(
+                'employee_user__instance', 'employee_user__entity', 'employee_user__unit'
+            ).get(id=user_id)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"user": "User with the given ID does not exist."})
+
+        # Temporarily store user instance for validation purposes
+        admin_type_name = data['admin_type']
+
+        # Use get_or_create to ensure the admin type exists or create it if it doesn't
+        admin_type, created = AdminType.objects.get_or_create(
+            name=admin_type_name,
+            defaults={'description': f'{admin_type_name} Admin Type'}
+        )
+        data['admin_type'] = admin_type  # Replace the name with the actual AdminType instance
+
+        # Determine jurisdiction based on admin_type
+        if admin_type.name == "INS":
+            if user.employee_user and user.employee_user.instance:
+                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Instance)
+                data['jurisdiction_object_id'] = user.employee_user.instance.id
+            else:
+                raise serializers.ValidationError({
+                    'jurisdiction': 'User does not have an associated instance.'
+                })
+        elif admin_type.name == "ENT":
+            if user.employee_user and user.employee_user.entity:
+                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Entity)
+                data['jurisdiction_object_id'] = user.employee_user.entity.id
+            else:
+                raise serializers.ValidationError({
+                    'jurisdiction': 'User does not have an associated entity.'
+                })
+        elif admin_type.name == "UNI":
+            if user.employee_user and user.employee_user.unit:
+                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Unit)
+                data['jurisdiction_object_id'] = user.employee_user.unit.id
+            else:
+                raise serializers.ValidationError({
+                    'jurisdiction': 'User does not have an associated unit.'
+                })
+        else:
+            raise serializers.ValidationError({
+                'admin_type': 'Invalid admin type specified.'
+            })
+
+        return data
+
+    def create(self, validated_data):
+        # Convert 'user' ID to User instance if it's not already
+        if isinstance(validated_data['user'], int):
+            validated_data['user'] = User.objects.get(id=validated_data['user'])
+        
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Convert 'user' ID to User instance if it's not already
+        if isinstance(validated_data['user'], int):
+            validated_data['user'] = User.objects.get(id=validated_data['user'])
+        
+        return super().update(instance, validated_data)
+
 
 # Serializer for Unit model with SoftDeleteMixin
 class UnitSerializer(serializers.ModelSerializer, SoftDeleteMixin):
