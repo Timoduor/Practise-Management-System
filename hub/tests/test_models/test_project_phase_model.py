@@ -1,0 +1,87 @@
+# hub/tests/test_models/test_project_phase_model.py
+from django.test import TestCase
+from core.models import Entity, Unit, User, Employee, Instance
+from hub.models import Customer, Project, ProjectPhase
+from datetime import date
+
+class ProjectPhaseModelTest(TestCase):
+    def setUp(self):
+        # Setting up required instance and related objects
+        self.instance = Instance.objects.create(
+            name="Instance for Phases",
+            code="INST03",
+            industry="Technology"
+        )
+        
+        self.entity = Entity.objects.create(
+            name="Entity for Phases",
+            entity_type="HC",
+            description="Holding Entity for Phases",
+            instance=self.instance
+        )
+        self.unit = Unit.objects.create(name="Unit Phases", unit_type="DEP", entity=self.entity)
+        
+        # Setting up a user and employee
+        self.user = User.objects.create_user(email="manager_phases@example.com", password="password")
+        self.employee = Employee.objects.create(
+            user=self.user,
+            entity=self.entity,
+            unit=self.unit,
+            instance=self.instance
+        )
+        
+        # Setting up a customer and project
+        self.customer = Customer.objects.create(
+            customer_name="Customer Phases",
+            customer_email="customerphases@example.com",
+            entity=self.entity,
+            unit=self.unit
+        )
+        
+        self.project = Project.objects.create(
+            project_name="Phase Project",
+            customer=self.customer,
+            project_value=50000.00,
+            start_date=date(2024, 1, 1),
+            project_manager=self.employee,
+            entity=self.entity,
+            unit=self.unit
+        )
+
+    def test_create_project_phase(self):
+        # Create a ProjectPhase instance and verify basic attributes
+        phase = ProjectPhase.objects.create(
+            phase_name="Design Phase",
+            project=self.project,
+            phase_description="Initial design phase",
+            start_date=date(2024, 1, 10),
+            end_date=date(2024, 2, 10)
+        )
+        self.assertEqual(phase.phase_name, "Design Phase")
+        self.assertEqual(phase.project, self.project)
+        self.assertEqual(phase.phase_description, "Initial design phase")
+
+    def test_project_phase_ordering(self):
+        # Test ordering by start_date
+        phase1 = ProjectPhase.objects.create(
+            phase_name="Phase One",
+            project=self.project,
+            start_date=date(2024, 3, 1)
+        )
+        phase2 = ProjectPhase.objects.create(
+            phase_name="Phase Two",
+            project=self.project,
+            start_date=date(2024, 2, 1)
+        )
+        phases = list(ProjectPhase.objects.all())
+        self.assertEqual(phases[0], phase2)
+        self.assertEqual(phases[1], phase1)
+
+    def test_project_phase_str(self):
+        # Testing string representation of ProjectPhase
+        phase = ProjectPhase.objects.create(
+            phase_name="Execution Phase",
+            project=self.project,
+            start_date=date(2024, 3, 10)
+        )
+        self.assertEqual(str(phase), f"Phase: Execution Phase of {self.project.project_name}")
