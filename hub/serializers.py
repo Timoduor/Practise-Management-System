@@ -16,9 +16,9 @@ class SoftDeleteBaseSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
 
-    def update(self, validated_data):
+    def update(self, instance, validated_data):
         validated_data['last_updated_by'] = self.context['request'].user
-        return super().update(validated_data)
+        return super().update(instance,validated_data)
     
     class Meta:
         abstract = True
