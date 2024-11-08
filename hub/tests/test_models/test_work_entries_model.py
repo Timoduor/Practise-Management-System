@@ -86,7 +86,8 @@ class WorkEntriesModelTest(TestCase):
             customer=self.customer,
             project=self.project,
             phase=self.phase,
-            task=self.task
+            task=self.task,
+            
         )
         # Trigger model validations before saving
         work_entry.full_clean()

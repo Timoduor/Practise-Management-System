@@ -182,7 +182,7 @@ class WorkEntries(SoftDeleteModel):
         ('NORMAL_ACTIVITIES', 'Normal Activities'),
         ('OTHER', 'Other'),
     ]
-    task_type = models.CharField(max_length=50, choices=TASK_TYPE_CHOICES)
+    task_type = models.CharField(max_length=50, choices=TASK_TYPE_CHOICES, default="NORMAL_ACTIVITIES")
 
     def __str__(self):
         return f"Work entry on {self.project} - {self.phase} - {self.task}"
@@ -237,30 +237,25 @@ class Absence(SoftDeleteModel):
     absence_description = models.TextField(null=True, blank=True)
 
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
-    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL ,null=True, blank=True)
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
     leave_type = models.ForeignKey(LeaveType, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user} - {self.leave_type} on {self.absence_date}"
 
     def clean(self):
-        if (self.project or self.task) and (self.sale or self.sales_task):
+        if self.project and self.sale:
             raise ValidationError("An Absence can relate to either a Project or Sale, but not both.")
-        if not any[self.project, self.sale]:
-            raise ValidationError("A WorkEntry must be related to either a Project or Sale")
-    
+        
+        if not any([self.project, self.sale]):
+            raise ValidationError("An Absence must be related to either a Project or Sale.")
+
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-
-            today = datetime.today().date()  # Common date for both times
-            # Combine date and time into datetime objects
+            today = datetime.today().date()
             start_datetime = datetime.combine(today, self.start_time)
-            
             end_datetime = datetime.combine(today, self.end_time)
-
-            # Calculate the difference (this will be a timedelta object)
             self.duration = end_datetime - start_datetime
-
         super().save(*args, **kwargs)
 
 
@@ -308,18 +303,17 @@ class Contact(SoftDeleteModel):
     contact_role = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.contact_name} - {self.role} ({self.customer})"
+        return f"{self.contact_name} - {self.contact_role or 'No Role'} ({self.customer})"
 
 
 
 class Invoice(SoftDeleteModel):
     invoice_id = models.AutoField(primary_key=True)
-    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
+    project = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     invoice_amount = models.DecimalField(max_digits=10, decimal_places=2)
     invoice_date = models.DateField()
     paid_status = models.BooleanField(default=False)
-
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -327,3 +321,9 @@ class Invoice(SoftDeleteModel):
 
     def __str__(self):
         return f"Invoice {self.invoice_id}: {self.invoice_amount}"
+
+    def clean(self):
+        super().clean()
+        if not self.customer:
+            raise ValidationError("An Invoice must have a related Customer.")
+
