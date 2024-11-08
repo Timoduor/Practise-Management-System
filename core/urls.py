@@ -1,4 +1,9 @@
-from .views import UserViewSet, AdminViewSet, EmployeeViewSet, InstanceViewSet, UnitViewSet, EntityViewSet
+from core.views.admin_views import AdminViewSet
+from core.views.employee_views import EmployeeViewSet
+from core.views.instance_views import InstanceViewSet
+from core.views.entity_views import EntityViewSet
+from core.views.user_views import UserViewSet
+from core.views.unit_views import UnitViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()

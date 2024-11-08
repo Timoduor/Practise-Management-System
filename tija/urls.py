@@ -18,11 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from core.views import CustomTokenObtainPairView, CustomTokenVerifyView, CustomTokenRefreshView
+from core.views.token_views import CustomTokenObtainPairView, CustomTokenVerifyView, CustomTokenRefreshView, LogoutView
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from core.views import LogoutView
 from hub.views import TimesheetView
 schema_view = get_schema_view(
    openapi.Info(
