@@ -80,10 +80,13 @@ class AdminViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Raise exception if data is invalid
         self.perform_create(serializer)  # Save new user
+        serializer.is_valid(raise_exception=True)  # Raise exception if data is invalid
+        self.perform_create(serializer)  # Save new user
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_queryset(self):
+        # Customize queryset based on the user's role and permissions
         user = self.request.user
 
         # Check if the user is staff and has an admin profile

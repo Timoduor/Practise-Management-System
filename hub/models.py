@@ -164,6 +164,11 @@ class WorkEntries(SoftDeleteModel):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
 
 
+
+
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+
+
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)    
