@@ -9,8 +9,11 @@ User = get_user_model()
 
 class ContactSerializerTest(TestCase):
     def setUp(self):
-        # Set up user, entity, unit, and customer
-        self.user = User.objects.create(username="testuser")
+        # Check if the User model expects an email instead of username
+        user_kwargs = {"email": "testuser@example.com"} if hasattr(User, 'email') else {"username": "testuser"}
+        self.user = User.objects.create(**user_kwargs)
+
+        # Set up other models as required
         self.entity = Entity.objects.create(
             name="TestEnt",
             entity_type="SEC",
@@ -30,7 +33,7 @@ class ContactSerializerTest(TestCase):
             unit=self.unit
         )
 
-        # Create an APIRequestFactory instance for creating mock requests
+        # Mock request setup
         self.factory = APIRequestFactory()
 
     def test_invalid_customer_reference(self):
@@ -62,11 +65,11 @@ class ContactSerializerTest(TestCase):
             "contact_phone": "0123456789",
             "customer": self.customer.pk
         }
-        # Create a mock request and assign the user to it
+        # Mock request with user
         request = self.factory.post('/fake-url/')
         request.user = self.user
 
-        # Pass the request context to the serializer
+        # Use serializer with request context
         serializer = ContactSerializer(data=data, context={'request': request})
         self.assertTrue(serializer.is_valid())
         contact = serializer.save()
