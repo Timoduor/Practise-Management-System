@@ -15,6 +15,7 @@ class Customer(SoftDeleteModel):
     def __str__(self):
         return self.customer_name
 
+
 class Sales(SoftDeleteModel):
     sales_id = models.AutoField(primary_key=True)
     sales_name = models.CharField(max_length=100)
@@ -43,9 +44,6 @@ class Sales(SoftDeleteModel):
 
     def __str__(self):
         return f"Sales {self.sales_id}: {self.sales_name}"  
-
-
-
 
 
 class Project(SoftDeleteModel):
