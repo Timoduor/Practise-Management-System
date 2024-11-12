@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from hub.models import LeaveType
+from hub.models.leave_type import LeaveType
 
 class LeaveTypeModelTest(TestCase):
 

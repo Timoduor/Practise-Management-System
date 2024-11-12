@@ -1,7 +1,13 @@
 # hub/tests/test_models/test_project_phase_model.py
 from django.test import TestCase
-from core.models import Entity, Unit, User, Employee, Instance
-from hub.models import Customer, Project, ProjectPhase
+from core.models.entity import Entity
+from core.models.unit import Unit
+from core.models.user import User
+from core.models.employee import Employee
+from core.models.instance import Instance
+from hub.models.customer import Customer
+from hub.models.project import Project
+from hub.models.project_phase import ProjectPhase
 from datetime import date
 
 class ProjectPhaseModelTest(TestCase):

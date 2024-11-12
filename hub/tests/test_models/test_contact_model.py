@@ -1,6 +1,7 @@
-from django.core.exceptions import ValidationError  # Import added
+from django.core.exceptions import ValidationError  
 from django.test import TestCase
-from hub.models import Contact, Customer
+from hub.models.contact import Contact
+from hub.models.customer import Customer
 
 class ContactModelTest(TestCase):
     def setUp(self):
