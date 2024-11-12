@@ -2,8 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from hub.models import Expense, Project, Sales, Customer, Task, ProjectPhase
-from core.models import User
+from hub.models.project import Project
+from hub.models.project_phase import ProjectPhase
+from hub.models.sales import Sales 
+from hub.models.expense import Expense 
+from hub.models.customer import Customer
+from hub.models.task import Task
+from core.models.user import User
 
 class ExpenseModelTest(TestCase):
     def setUp(self):

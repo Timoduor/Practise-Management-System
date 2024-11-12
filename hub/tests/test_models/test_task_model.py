@@ -1,8 +1,16 @@
-# hub/tests/test_models/test_task_model.py
 from django.test import TestCase
-from core.models import Entity, Unit, User, Employee, Instance
-from hub.models import Customer, Project, ProjectPhase, Task
+from core.models.entity import Entity
+from core.models.unit import Unit
+from core.models.user import User
+from core.models.employee import Employee
+from core.models.instance import Instance
+from hub.models.customer import Customer
+from hub.models.project import Project
+from hub.models.project_phase import ProjectPhase
+from hub.models.task import Task
+from hub.models.task_status import TaskStatus
 from datetime import date
+
 
 class TaskModelTest(TestCase):
     def setUp(self):
@@ -53,6 +61,12 @@ class TaskModelTest(TestCase):
             start_date=date(2024, 5, 1)
         )
 
+        # Create a TaskStatus instance for use in tests
+        self.task_status = TaskStatus.objects.create(
+            name="In Progress",
+            description="Task is currently being worked on"
+        )
+
     def test_create_task(self):
         # Create a Task instance and verify attributes
         task = Task.objects.create(
@@ -63,12 +77,12 @@ class TaskModelTest(TestCase):
             task_description="Set up initial development environment",
             start_date=date(2024, 5, 2),
             due_date=date(2024, 5, 10),
-            task_status="IN_PROGRESS"
+            task_status=self.task_status  # Updated to use task_status instance
         )
         self.assertEqual(task.task_name, "Initial Setup")
         self.assertEqual(task.project, self.project)
         self.assertEqual(task.phase, self.phase)
-        self.assertEqual(task.task_status, "IN_PROGRESS")
+        self.assertEqual(task.task_status, self.task_status)
 
     def test_task_ordering(self):
         # Test ordering by due_date
@@ -76,13 +90,15 @@ class TaskModelTest(TestCase):
             task_name="Phase Documentation",
             project=self.project,
             phase=self.phase,
-            due_date=date(2024, 5, 15)
+            due_date=date(2024, 5, 15),
+            task_status=self.task_status
         )
         task2 = Task.objects.create(
             task_name="Code Review",
             project=self.project,
             phase=self.phase,
-            due_date=date(2024, 5, 5)
+            due_date=date(2024, 5, 5),
+            task_status=self.task_status
         )
         tasks = list(Task.objects.all())
         self.assertEqual(tasks[0], task2)
@@ -94,6 +110,7 @@ class TaskModelTest(TestCase):
             task_name="Testing",
             project=self.project,
             phase=self.phase,
-            due_date=date(2024, 5, 12)
+            due_date=date(2024, 5, 12),
+            task_status=self.task_status
         )
         self.assertEqual(str(task), f"Testing in {self.phase.phase_name}")
