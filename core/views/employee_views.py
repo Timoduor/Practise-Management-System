@@ -26,6 +26,4 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         # Default filtering for non-staff users
         return Employee.objects.filter(entity=user.employee_user.entity)
 
-    def destroy(self, request, pk=None):
-        # Handle deletion of a specific Employee object by primary key
-        user = get_object_or_404(Employee, pk=pk)
+  
