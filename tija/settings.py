@@ -141,6 +141,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / STATIC_URL
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -185,17 +186,17 @@ SITE_NAME = "TIJA Practice Management System"
 #Change this in production
 DOMAIN = 'localhost:3000'
 
-# settings.py
+# # settings.py
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-# SMTP server configuration for Outlook
-EMAIL_HOST = 'smtp.office365.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True  # Use TLS for secure connection
-EMAIL_HOST_USER = 'dev@sbsl.co.ke'  # Your Outlook email address
-EMAIL_HOST_PASSWORD = 'your-password'               # Your Outlook account password
+# # SMTP server configuration for Outlook
+# EMAIL_HOST = 'smtp.office365.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True  # Use TLS for secure connection
+# EMAIL_HOST_USER = 'dev@sbsl.co.ke'  # Your Outlook email address
+# EMAIL_HOST_PASSWORD = 'your-password'               # Your Outlook account password
 
-# Optional: Customize sender and recipient defaults
-DEFAULT_FROM_EMAIL = 'Your Name <dev@sbsl.co.ke>'
-SERVER_EMAIL = 'dev@sbsl.co.ke'
+# # Optional: Customize sender and recipient defaults
+# DEFAULT_FROM_EMAIL = 'Your Name <dev@sbsl.co.ke>'
+# SERVER_EMAIL = 'dev@sbsl.co.ke'
