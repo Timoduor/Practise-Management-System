@@ -1,6 +1,9 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Entity, Unit
+from core.models.entity import Entity
+from core.models.unit import Unit
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from hub.models import Customer, Contact
 from hub.serializers import ContactSerializer
 from rest_framework.test import APIRequestFactory
@@ -14,16 +17,17 @@ class ContactSerializerTest(TestCase):
         self.user = User.objects.create(**user_kwargs)
 
         # Set up other models as required
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
         self.entity = Entity.objects.create(
-            name="TestEnt",
-            entity_type="SEC",
-            description="EntityDesc"
+            name="Entity Project",
+            entity_type=self.entity_type,
+            description="Holding Company for Project",
+            instance=self.instance
         )
-        self.unit = Unit.objects.create(
-            name="Branch",
-            unit_type="BR",
-            entity=self.entity
-        )
+        
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
+        
         self.customer = Customer.objects.create(
             customer_name="Test Customer",
             customer_email="testcustomer@example.com",

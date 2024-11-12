@@ -4,6 +4,8 @@ from core.models.unit import Unit
 from core.models.user import User
 from core.models.employee import Employee
 from core.models.instance import Instance
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from hub.models.customer import Customer
 from hub.models.project import Project
 from hub.models.project_phase import ProjectPhase
@@ -21,14 +23,17 @@ class TaskModelTest(TestCase):
             industry="Education"
         )
         
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
         self.entity = Entity.objects.create(
-            name="Entity for Tasks",
-            entity_type="HC",
-            description="Holding Entity for Tasks",
+            name="Entity Project",
+            entity_type=self.entity_type,
+            description="Holding Company for Project",
             instance=self.instance
         )
         
-        self.unit = Unit.objects.create(name="Unit Tasks", unit_type="DEP", entity=self.entity)
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
+        
         self.user = User.objects.create_user(email="task_manager@example.com", password="password")
         self.employee = Employee.objects.create(
             user=self.user,

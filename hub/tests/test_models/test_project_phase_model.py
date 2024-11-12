@@ -2,6 +2,8 @@
 from django.test import TestCase
 from core.models.entity import Entity
 from core.models.unit import Unit
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from core.models.user import User
 from core.models.employee import Employee
 from core.models.instance import Instance
@@ -19,13 +21,16 @@ class ProjectPhaseModelTest(TestCase):
             industry="Technology"
         )
         
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
         self.entity = Entity.objects.create(
-            name="Entity for Phases",
-            entity_type="HC",
-            description="Holding Entity for Phases",
+            name="Entity Project",
+            entity_type=self.entity_type,
+            description="Holding Company for Project",
             instance=self.instance
         )
-        self.unit = Unit.objects.create(name="Unit Phases", unit_type="DEP", entity=self.entity)
+        
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
         
         # Setting up a user and employee
         self.user = User.objects.create_user(email="manager_phases@example.com", password="password")

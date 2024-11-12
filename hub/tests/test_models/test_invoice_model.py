@@ -5,12 +5,16 @@ from hub.models.customer import Customer
 from hub.models.project import Project
 from core.models.entity import Entity
 from core.models.unit import Unit
+from core.models.unit_type import UnitType
+from core.models.entity_type import EntityType
 from datetime import date
 
 class InvoiceModelTest(TestCase):
     def setUp(self):
-        self.entity = Entity.objects.create(name="Test Entity", entity_type="SEC", description="Entity Description")
-        self.unit = Unit.objects.create(name="Test Unit", entity=self.entity, unit_type="BR")
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.entity = Entity.objects.create(name="EntityName", entity_type=self.entity_type, description="Test Entity Description")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
         self.customer = Customer.objects.create(
             customer_name="Test Customer",
             customer_email="customer@example.com",

@@ -5,6 +5,8 @@ from core.models.unit import Unit
 from core.models.user import User
 from core.models.employee import Employee
 from core.models.instance import Instance
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from hub.models.customer import Customer
 from hub.models.sales import Sales
 from hub.models.sales_task import SalesTask
@@ -17,13 +19,17 @@ class SalesTaskModelTest(TestCase):
 
     def setUp(self):
         self.instance = Instance.objects.create(name="Test Instance", code="TI", industry="IT")
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
         self.entity = Entity.objects.create(
-            name="Test Entity", 
-            entity_type="SEC", 
-            description="Test Description", 
+            name="Entity Project",
+            entity_type=self.entity_type,
+            description="Holding Company for Project",
             instance=self.instance
         )
-        self.unit = Unit.objects.create(name="Headquarters", unit_type="DEP", entity=self.entity)
+        
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
+        
         self.user = User.objects.create_user(email="testuser@example.com", password="password")
         self.customer = Customer.objects.create(
             customer_name="Test Customer",

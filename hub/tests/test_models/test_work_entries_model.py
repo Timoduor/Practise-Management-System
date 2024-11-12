@@ -8,6 +8,8 @@ from hub.models.task_type import TaskType
 from core.models.user import User
 from core.models.unit import Unit
 from core.models.entity import Entity
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from core.models.instance import Instance
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
@@ -17,8 +19,17 @@ from django.core.exceptions import ValidationError
 class WorkEntriesModelTest(TestCase):
     def setUp(self):
         self.instance = Instance.objects.create(name="TestInst", code="TST", industry="Tech")
-        self.entity = Entity.objects.create(name="TestEntity", entity_type="SEC", instance=self.instance)
-        self.unit = Unit.objects.create(name="Unit1", entity=self.entity, unit_type="BR")
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
+        self.entity = Entity.objects.create(
+            name="Entity Project",
+            entity_type=self.entity_type,
+            description="Holding Company for Project",
+            instance=self.instance
+        )
+        
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
+        
         self.user = User.objects.create_user(email="user@example.com", password="password123")
         self.customer = Customer.objects.create(customer_name="TestCustomer", customer_email="customer@example.com")
         self.project = Project.objects.create(project_name="TestProject", customer=self.customer, project_value=50000.00)

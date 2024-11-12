@@ -1,14 +1,18 @@
 from django.test import TestCase
 from core.models.entity import Entity
 from core.models.unit import Unit
+from core.models.entity_type import EntityType
+from core.models.unit_type import UnitType
 from hub.models.customer import Customer
 from django.core.exceptions import ValidationError
 
 class CustomerModelTest(TestCase):
     def setUp(self):
         # Adjust name lengths based on Entity model constraints
-        self.entity = Entity.objects.create(name="EntityName", entity_type="SEC", description="Test Entity Description")
-        self.unit = Unit.objects.create(name="UnitName", unit_type="BR", entity=self.entity)
+        self.entity_type = EntityType.objects.create(name="SEC", description="Consists of a single entity")
+        self.unit_type = UnitType.objects.create(name="Branch", description="Location based")
+        self.entity = Entity.objects.create(name="EntityName", entity_type=self.entity_type, description="Test Entity Description")
+        self.unit = Unit.objects.create(name="UnitName", unit_type=self.unit_type, entity=self.entity)
 
     def test_create_customer(self):
         # Test valid creation of a customer with all fields
