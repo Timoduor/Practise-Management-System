@@ -9,6 +9,6 @@ class EntityTypeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         model = EntityType
         # Define fields for Entity Type model
         fields = [
-            'id',  'entity_type', 'description', 'is_deleted', 'created_at', 
+            'id',  'name', 'description', 'is_deleted', 'created_at', 
             'updated_at', 'last_updated_by', 'created_by'
         ]

@@ -9,6 +9,6 @@ class UnitTypeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         model = UnitType
         # Define fields for Unit model
         fields = [
-            'id',  'unit_type', 'description', 'is_deleted', 'created_at', 
+            'id',  'name', 'description', 'is_deleted', 'created_at', 
             'updated_at', 'last_updated_by', 'created_by'
         ]
