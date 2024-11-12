@@ -28,4 +28,4 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk=None):
         # Handle deletion of a specific Employee object by primary key
-        user = get_object_or_404(Admin, pk=pk)
+        user = get_object_or_404(Employee, pk=pk)
