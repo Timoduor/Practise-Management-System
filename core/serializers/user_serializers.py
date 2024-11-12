@@ -9,9 +9,11 @@ from core.models.unit import Unit
 from .base_serializers import SoftDeleteMixin
 from django.contrib.contenttypes.models import ContentType
 
+import logging
 import string, secrets
 from django.core.mail import send_mail
 
+logger = logging.getLogger(__name__)
 # Serializer for the User model with additional employee-related fields
 class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     # Fields for linking employee to instance, entity, and unit
@@ -53,109 +55,209 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
 
         return data
 
+
     def create(self, validated_data):
-        # Context for the current request user
+        logger.debug("Creating a new user with validated data: %s", validated_data)
+        
         request_user = self.context['request'].user
-
-        # Retrieve employee fields from validated data or use default from request user
+        employee_instance = validated_data.pop('employee_instance', None)
+        employee_entity = validated_data.pop('employee_entity', None)
+        employee_unit = validated_data.pop('employee_unit', None)
         if request_user.is_authenticated and hasattr(request_user, 'employee_user'):
-            employee_instance = validated_data.pop('employee_instance', None) or getattr(request_user.employee_user, 'instance', None)
-            employee_entity = validated_data.pop('employee_entity', None) or getattr(request_user.employee_user, 'entity', None)
-            employee_unit = validated_data.pop('employee_unit', None) or getattr(request_user.employee_user, 'unit', None)
+            logger.debug("Authenticated request user found with employee_user attribute.")
+            # employee_instance = validated_data.pop('employee_instance', None) #or getattr(request_user.employee_user, 'instance', None)
+            # employee_entity = validated_data.pop('employee_entity', None) #or getattr(request_user.employee_user, 'entity', None)
+            # employee_unit = validated_data.pop('employee_unit', None) #or getattr(request_user.employee_user, 'unit', None)
         else:
-            employee_instance = None
-            employee_entity = None
-            employee_unit = None
+            logger.debug("No authenticated request user or employee_user attribute found.")
+            # employee_instance = None
+            # employee_entity = None
+            # employee_unit = None
 
-        # Retrieve optional instance data for the first user in an instance
         industry = validated_data.pop("industry", None)
         instance_name = validated_data.pop("instance_name", None)
         password = validated_data.get('password')
 
-        # Create the user object
+        # Create user
         user = User.objects.create(**validated_data)
+        logger.info("User %s created successfully", user.email)
+
         if password:
+            logger.debug("Setting user password from provided data.")
             user.set_password(validated_data['password'])
         else:
-            # Generate a random password and send it to the user via email
+            # Generate and send password
+            logger.debug("No password provided, generating random password.")
             alphabet = string.ascii_letters + string.digits + string.punctuation
             random_password = ''.join(secrets.choice(alphabet) for i in range(12))
             user.set_password(random_password)
-            send_mail(
-                subject='Your New Account Details',
-                message=f'Hello {user.first_name},\n\nYour account has been created successfully. Your login password is: {random_password}\nPlease change your password after logging in for the first time.\n\nBest regards,\nYour Company',
-                from_email='noreply@yourdomain.com',  # Replace with actual sender address
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-
-        # Check if this user is the first user for the given instance
-        if employee_instance:
-            if not Employee.objects.filter(instance=employee_instance).exists():
-                # Assign admin privileges for the first user in an instance
-                user.is_staff = True
-                user.save()
-
-                # Assign instance admin type and create Admin object
-                admin_type, created = AdminType.objects.get_or_create(name="INS")
-                Admin.objects.create(
-                    user=user,
-                    admin_type=admin_type,
-                    jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
-                    jurisdiction_object_id=employee_instance.id,
-                    created_by=user,
-                    last_updated_by=user
+            try:
+                send_mail(
+                    subject='Your New Account Details',
+                    message=f'Hello {user.first_name},\n\nYour account has been created successfully. Your login password is: {random_password}\nPlease change your password after logging in for the first time.\n\nBest regards,\nYour Company',
+                    from_email='noreply@yourdomain.com',  # Replace with actual sender address
+                    recipient_list=[user.email],
+                    fail_silently=False,
                 )
-            else:
-                # For regular users added by instance admin
-                if self.context['request'].user.is_staff:
-                    user.save()
-                    Employee.objects.create(
-                        user=user,
-                        instance=employee_instance,
-                        entity=employee_entity,
-                        unit=employee_unit
-                    )
-                else:
-                    raise serializers.ValidationError({
-                        'authorization': 'Only instance admins can create new users.'
-                    })
-        else:
-            # Create a new instance if it’s the first user registration with instance details
-            if instance_name and industry:
-                user.is_staff = True  # First user as instance admin
-                user.save()
+                logger.info("Password email sent to %s", user.email)
+            except Exception as e:
+                logger.error("Failed to send password email to %s: %s", user.email, e)
 
-                instance = Instance.objects.create(
+        #We're fine up to here
+
+        if instance_name and industry:
+            logger.debug("Instance creation data provided, creating new instance.")
+            user.is_staff = True
+            user.save()
+
+            instance = Instance.objects.create(
                     name=instance_name,
                     code=f"{instance_name[:3].upper()}{User.objects.count()}"[:15],
                     industry=industry,
                     created_by=user,
                     last_updated_by=user
-                )
+            )
+            logger.info("Instance %s created for first user %s", instance_name, user.email)
 
-                # Make the first user the instance admin
-                admin_type, created = AdminType.objects.get_or_create(name="INS")
-                Admin.objects.create(
-                    user=user,
+            admin_type, created = AdminType.objects.get_or_create(name="INS")
+            Admin.objects.create(
+                  user=user,
                     admin_type=admin_type,
                     jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
                     jurisdiction_object_id=instance.id,
                     created_by=user,
                     last_updated_by=user
                 )
+            logger.info("Admin record created for user %s as instance admin", user.email)
 
-                # Create an Employee record for the instance admin
-                Employee.objects.create(
+            Employee.objects.create(
                     user=user,
                     instance=instance,
                     entity=None,
                     unit=None
-                )
-            else:
-                raise serializers.ValidationError({
-                    'instance': 'Instance details are required for the first user registration.'
-                })
+            )
+            logger.info("Employee record created for instance admin user %s", user.email)
+        else:
+            employee_instance = employee_instance or getattr(request_user.employee_user, 'instance', None)
+            # employee_entity = validated_data.pop('employee_entity', None) 
+            # employee_unit = validated_data.pop('employee_unit', None) 
+
+            logger.info("The instance for this request is %s", employee_instance)
+            logger.info("The ENTITY for this request is %s", employee_entity)
+            logger.info("The instance for this request is %s", employee_unit)
+
+            if employee_instance:
+                logger.debug("Employee instance provided: %s", employee_instance)
+                if not Employee.objects.filter(instance=employee_instance).exists():
+                    logger.debug("No existing employees for this instance; setting user as instance admin.")
+                    user.is_staff = True
+                    user.save()
+
+                    admin_type, created = AdminType.objects.get_or_create(name="INS")
+                    Admin.objects.create(
+                        user=user,
+                        admin_type=admin_type,
+                        jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
+                        jurisdiction_object_id=employee_instance.id,
+                        created_by=user,
+                        last_updated_by=user
+                    )
+                    logger.info("Admin record created for user %s as instance admin", user.email)
+                else:
+                    if self.context['request'].user.is_staff:
+                        logger.debug("Staff user creating a new employee for instance.")
+                        user.save()
+                        Employee.objects.create(
+                            user=user,
+                            instance=employee_instance,
+                            entity=ent,
+                            unit=uni
+                        )
+                        logger.info("Employee record created for user %s", user.email)
+                    else:
+                        logger.warning("Unauthorized attempt to create user by non-staff user %s", request_user.email)
+                        raise serializers.ValidationError({
+                            'authorization': 'Only instance admins can create new users.'
+                        })
+
+
+
+            # logger.error("Instance details missing for first user registration")
+            # raise serializers.ValidationError({
+            #         'instance': 'Instance details are required for the first user registration.'
+            # })
+        # Check if this user is the first user for the given instance
+        # if employee_instance:
+        #     logger.debug("Employee instance provided: %s", employee_instance)
+        #     if not Employee.objects.filter(instance=employee_instance).exists():
+        #         logger.debug("No existing employees for this instance; setting user as instance admin.")
+        #         user.is_staff = True
+        #         user.save()
+
+        #         admin_type, created = AdminType.objects.get_or_create(name="INS")
+        #         Admin.objects.create(
+        #             user=user,
+        #             admin_type=admin_type,
+        #             jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
+        #             jurisdiction_object_id=employee_instance.id,
+        #             created_by=user,
+        #             last_updated_by=user
+        #         )
+        #         logger.info("Admin record created for user %s as instance admin", user.email)
+        #     else:
+        #         if self.context['request'].user.is_staff:
+        #             logger.debug("Staff user creating a new employee for instance.")
+        #             user.save()
+        #             Employee.objects.create(
+        #                 user=user,
+        #                 instance=employee_instance,
+        #                 entity=employee_entity,
+        #                 unit=employee_unit
+        #             )
+        #             logger.info("Employee record created for user %s", user.email)
+        #         else:
+        #             logger.warning("Unauthorized attempt to create user by non-staff user %s", request_user.email)
+        #             raise serializers.ValidationError({
+        #                 'authorization': 'Only instance admins can create new users.'
+        #             })
+        # else:
+        #     logger.debug("No employee instance provided; checking for instance creation data.")
+        #     if instance_name and industry:
+        #         logger.debug("Instance creation data provided, creating new instance.")
+        #         user.is_staff = True
+        #         user.save()
+
+        #         instance = Instance.objects.create(
+        #             name=instance_name,
+        #             code=f"{instance_name[:3].upper()}{User.objects.count()}"[:15],
+        #             industry=industry,
+        #             created_by=user,
+        #             last_updated_by=user
+        #         )
+        #         logger.info("Instance %s created for first user %s", instance_name, user.email)
+
+        #         admin_type, created = AdminType.objects.get_or_create(name="INS")
+        #         Admin.objects.create(
+        #             user=user,
+        #             admin_type=admin_type,
+        #             jurisdiction_content_type=ContentType.objects.get_for_model(Instance),
+        #             jurisdiction_object_id=instance.id,
+        #             created_by=user,
+        #             last_updated_by=user
+        #         )
+        #         logger.info("Admin record created for user %s as instance admin", user.email)
+
+        #         Employee.objects.create(
+        #             user=user,
+        #             instance=instance,
+        #             entity=None,
+        #             unit=None
+        #         )
+        #         logger.info("Employee record created for instance admin user %s", user.email)
+        #     else:
+        #         logger.error("Instance details missing for first user registration")
+        #         raise serializers.ValidationError({
+        #             'instance': 'Instance details are required for the first user registration.'
+        #         })
 
         return user
-
