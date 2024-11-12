@@ -179,7 +179,7 @@ DJOSER = {
     "LOGIN_FIELD": "email",
 }
 
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 SITE_NAME = "TIJA Practice Management System"
 
