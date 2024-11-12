@@ -3,8 +3,8 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from hub.models.absence import Absence
 from hub.models.project import Project
-from hub.models.sales import Sales 
-from hub.models.leave_type import LeaveType 
+from hub.models.sales import Sales
+from hub.models.leave_type import LeaveType
 from hub.models.customer import Customer
 from core.models.user import User
 
@@ -96,3 +96,18 @@ class AbsenceModelTest(TestCase):
             leave_type=self.leave_type
         )
         self.assertEqual(str(absence), f"{self.user} - {self.leave_type} on {absence.absence_date}")
+
+    def test_absence_overnight_duration(self):
+        absence = Absence.objects.create(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() - timedelta(hours=4)).time(),
+            absence_description="Overnight shift",
+            project=self.project,
+            leave_type=self.leave_type
+        )
+        absence.full_clean()  # Validate fields
+        self.assertIsNotNone(absence.pk)
+        # Assuming 4-hour difference between end time next day
+        self.assertEqual(absence.duration.total_seconds(), 20 * 3600)  # 20 hours in seconds

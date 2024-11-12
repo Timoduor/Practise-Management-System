@@ -4,6 +4,7 @@ from core.models.employee import Employee
 from .sales import Sales
 from .sales_task_status import SalesTaskStatus
 from .sales_task_type import SalesTaskType
+from django.core.exceptions import ValidationError
 
 
 class SalesTask(SoftDeleteModel):
@@ -26,3 +27,10 @@ class SalesTask(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.task_name} in {self.sale.sales_name if self.sale else 'No Sale'}"
+    
+    def clean(self):
+        # Ensure that task_type and task_status are not None
+        if self.task_type is None:
+            raise ValidationError({"task_type": "Task type cannot be null."})
+        if self.task_status is None:
+            raise ValidationError({"task_status": "Task status cannot be null."})

@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError  
-from datetime import datetime
+from datetime import datetime, timedelta
 from core.models.base import SoftDeleteModel
 from core.models.user import User
 from .project import Project
@@ -33,9 +33,13 @@ class Absence(SoftDeleteModel):
 
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-            today = datetime.today().date()
-            start_datetime = datetime.combine(today, self.start_time)
-            end_datetime = datetime.combine(today, self.end_time)
-            self.duration = end_datetime - start_datetime
+            today = datetime.combine(self.absence_date, self.start_time)
+            end_datetime = datetime.combine(self.absence_date, self.end_time)
+
+            # If end time is earlier than start time, assume the end time is on the next day
+            if end_datetime < today:
+                end_datetime += timedelta(days=1)
+
+            self.duration = end_datetime - today
         super().save(*args, **kwargs)
 

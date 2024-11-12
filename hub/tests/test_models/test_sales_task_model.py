@@ -1,13 +1,21 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from hub.models import SalesTask, Sales, Customer
-from core.models import Entity, Unit, User, Employee, Instance
+from core.models.entity import Entity
+from core.models.unit import Unit
+from core.models.user import User
+from core.models.employee import Employee
+from core.models.instance import Instance
+from hub.models.customer import Customer
+from hub.models.sales import Sales
+from hub.models.sales_task import SalesTask
+from hub.models.sales_task_type import SalesTaskType
+from hub.models.sales_task_status import SalesTaskStatus
+from datetime import date
 
 
 class SalesTaskModelTest(TestCase):
 
     def setUp(self):
-        # Setup related models
         self.instance = Instance.objects.create(name="Test Instance", code="TI", industry="IT")
         self.entity = Entity.objects.create(
             name="Test Entity", 
@@ -33,63 +41,60 @@ class SalesTaskModelTest(TestCase):
             sales_name="Test Sale",
             customer=self.customer,
             project_value=1000.00,
-            expected_order_date="2024-06-10",
+            expected_order_date=date(2024, 6, 10),
             created_by=self.user,
             entity=self.entity,
             unit=self.unit
         )
 
+        # Set up task type and task status
+        self.task_type = SalesTaskType.objects.create(name="Meeting", description="Initial meeting with the client")
+        self.task_status = SalesTaskStatus.objects.create(name="In Progress", description="Task is currently active")
+
     def test_create_sales_task(self):
         sales_task = SalesTask.objects.create(
             task_name="Initial Meeting",
             sale=self.sale,
-            task_type="MEETING",
-            task_status="IN_PROGRESS",
-            date="2024-06-12"
+            task_type=self.task_type,
+            task_status=self.task_status,
+            assigned_to=self.employee,
+            date=date(2024, 6, 12)
         )
         self.assertEqual(sales_task.task_name, "Initial Meeting")
-        self.assertEqual(sales_task.task_type, "MEETING")
-        self.assertEqual(sales_task.task_status, "IN_PROGRESS")
+        self.assertEqual(sales_task.task_type, self.task_type)
+        self.assertEqual(sales_task.task_status, self.task_status)
         self.assertEqual(sales_task.sale, self.sale)
+        self.assertEqual(sales_task.assigned_to, self.employee)
 
     def test_sales_task_str(self):
         sales_task = SalesTask.objects.create(
             task_name="Follow-up Call",
             sale=self.sale,
-            task_type="CALL",
-            task_status="PENDING",
-            date="2024-06-15"
+            task_type=self.task_type,
+            task_status=self.task_status,
+            date=date(2024, 6, 15)
         )
         self.assertEqual(str(sales_task), f"Follow-up Call in {self.sale.sales_name}")
 
-    def test_sales_task_choices(self):
-        # Test valid choices for task_type and task_status
-        sales_task = SalesTask.objects.create(
-            task_name="Initial Meeting",
-            sale=self.sale,
-            task_type="MEETING",
-            task_status="IN_PROGRESS",
-            date="2024-06-12"
-        )
-        self.assertEqual(sales_task.task_type, "MEETING")
-        self.assertEqual(sales_task.task_status, "IN_PROGRESS")
-        
-        # Test invalid choices for task_type
-        invalid_task = SalesTask(
+    def test_invalid_task_type_and_status(self):
+        # Test missing task_type
+        invalid_task_type = SalesTask(
             task_name="Invalid Task",
             sale=self.sale,
-            task_type="INVALID_TYPE",  # Invalid task_type
-            task_status="PENDING"
+            task_type=None,  # No task_type provided
+            task_status=self.task_status
         )
-        with self.assertRaises(ValidationError):
-            invalid_task.full_clean()  # full_clean() triggers validation for choices
-        
-        # Test invalid choices for task_status
-        invalid_status = SalesTask(
-            task_name="Invalid Task Status",
+        with self.assertRaises(ValidationError) as e:
+            invalid_task_type.full_clean()
+        self.assertIn("task_type", e.exception.message_dict)
+
+        # Test missing task_status
+        invalid_task_status = SalesTask(
+            task_name="Invalid Status Task",
             sale=self.sale,
-            task_type="TO_DO",
-            task_status="INVALID_STATUS"  # Invalid task_status
+            task_type=self.task_type,
+            task_status=None  # No task_status provided
         )
-        with self.assertRaises(ValidationError):
-            invalid_status.full_clean()  # full_clean() triggers validation for choices
+        with self.assertRaises(ValidationError) as e:
+            invalid_task_status.full_clean()
+        self.assertIn("task_status", e.exception.message_dict)
