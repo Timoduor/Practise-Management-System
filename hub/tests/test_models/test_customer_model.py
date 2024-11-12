@@ -1,7 +1,8 @@
 # hub/tests/test_models/test_customer_model.py
 from django.test import TestCase
-from core.models import Entity, Unit
-from hub.models import Customer
+from core.models.entity import Entity
+from core.models.unit import Unit
+from hub.models.customer import Customer
 from django.core.exceptions import ValidationError
 
 class CustomerModelTest(TestCase):

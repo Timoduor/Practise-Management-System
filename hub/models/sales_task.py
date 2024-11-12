@@ -1,5 +1,6 @@
 from django.db import models
-from core.models import SoftDeleteModel, Employee
+from core.models.base import SoftDeleteModel
+from core.models.employee import Employee
 from .sales import Sales
 from .sales_task_status import SalesTaskStatus
 from .sales_task_type import SalesTaskType

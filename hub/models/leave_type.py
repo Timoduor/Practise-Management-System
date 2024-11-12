@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import SoftDeleteModel
+from core.models.base  import SoftDeleteModel
 
 class LeaveType(SoftDeleteModel):
     name = models.CharField(max_length=100, unique=True)  

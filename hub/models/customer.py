@@ -1,5 +1,8 @@
 from django.db import models
-from core.models import SoftDeleteModel, Entity, Unit
+from core.models.base import SoftDeleteModel
+from core.models.entity import Entity
+from core.models.unit import Unit
+
 
 class Customer(SoftDeleteModel):
     customer_id = models.AutoField(primary_key=True)

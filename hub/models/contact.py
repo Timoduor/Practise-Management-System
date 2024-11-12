@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import SoftDeleteModel
+from core.models.base import SoftDeleteModel
 from .customer import Customer
 
 

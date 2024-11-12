@@ -1,5 +1,6 @@
 from django.db import models
-from core.models import SoftDeleteModel, User
+from core.models.base import SoftDeleteModel
+from core.models.user import User
 from .project import Project
 from .project_phase import ProjectPhase
 from .task import Task

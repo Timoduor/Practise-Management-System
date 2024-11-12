@@ -1,5 +1,7 @@
 from django.db import models
-from core.models import SoftDeleteModel, Entity, Unit
+from core.models import SoftDeleteModel
+from core.models.entity import Entity
+from core.models.unit import Unit
 from .customer import Customer
 from .project import Project
 

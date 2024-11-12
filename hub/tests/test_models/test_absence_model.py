@@ -1,8 +1,12 @@
 from datetime import datetime, timedelta
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from hub.models import Absence, Project, Sales, LeaveType, Customer
-from core.models import User
+from hub.models.absence import Absence
+from hub.models.project import Project
+from hub.models.sales import Sales 
+from hub.models.leave_type import LeaveType 
+from hub.models.customer import Customer
+from core.models.user import User
 
 class AbsenceModelTest(TestCase):
     def setUp(self):

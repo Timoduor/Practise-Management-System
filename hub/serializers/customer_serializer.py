@@ -1,19 +1,25 @@
 from rest_framework import serializers
-from hub.models import Customer
-from .contact_serializer import ContactSerializer
+from core.models.entity import Entity
+from core.models.unit import Unit
+from hub.models.customer import Customer
 from .project_serializer import ProjectSerializer
 from .sales_serializer import SalesSerializer
+from .contact_serializer import ContactSerializer
+from .base_serializer import SoftDeleteBaseSerializer
 
 
-class CustomerSerializer(serializers.ModelSerializer):
+class CustomerSerializer(SoftDeleteBaseSerializer):
     contacts = ContactSerializer(many=True, read_only=True)
     
     sales = SalesSerializer(many=True, read_only=True)
     projects = ProjectSerializer(many=True, read_only=True)
 
-    class Meta:
+    entity = serializers.PrimaryKeyRelatedField(queryset=Entity.objects.all(), required=False, allow_null=True)
+    unit = serializers.PrimaryKeyRelatedField(queryset=Unit.objects.all(), required=False, allow_null=True)
+
+    class Meta(SoftDeleteBaseSerializer.Meta):
         model = Customer
-        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales', 'projects']
+        fields = ['customer_id', 'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'entity', 'unit', 'is_deleted', 'created_at', 'updated_at', 'contacts', 'sales', 'projects'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         entity = data.get('entity')

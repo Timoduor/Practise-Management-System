@@ -1,5 +1,9 @@
 from django.db import models
-from core.models import SoftDeleteModel, Entity, Unit, User, Employee
+from core.models.base import SoftDeleteModel
+from core.models.employee import Employee
+from core.models.entity import Entity
+from core.models.unit import Unit
+from core.models.user import User
 from .customer import Customer
 from .sales_type import SalesType
 

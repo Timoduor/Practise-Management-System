@@ -1,5 +1,8 @@
 from django.db import models
-from core.models import SoftDeleteModel,Employee, Entity, Unit
+from core.models.base import SoftDeleteModel
+from core.models.employee import Employee
+from core.models.entity import Entity
+from core.models.unit import Unit
 from .customer import Customer
 from .sales import Sales
 
