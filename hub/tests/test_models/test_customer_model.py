@@ -1,4 +1,3 @@
-# hub/tests/test_models/test_customer_model.py
 from django.test import TestCase
 from core.models.entity import Entity
 from core.models.unit import Unit

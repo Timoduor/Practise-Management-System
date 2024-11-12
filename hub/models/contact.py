@@ -13,5 +13,5 @@ class Contact(SoftDeleteModel):
     contact_role = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.contact_name} - {self.role} ({self.customer})"
+        return f"{self.contact_name} - {self.contact_role or 'No Role'} ({self.customer})"
 

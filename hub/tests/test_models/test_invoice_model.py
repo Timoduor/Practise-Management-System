@@ -1,8 +1,10 @@
-# hub/tests/test_models/test_invoice_model.py
-
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from hub.models import Invoice, Customer, Project, Entity, Unit
+from hub.models.invoice import Invoice
+from hub.models.customer import Customer
+from hub.models.project import Project
+from core.models.entity import Entity
+from core.models.unit import Unit
 from datetime import date
 
 class InvoiceModelTest(TestCase):
