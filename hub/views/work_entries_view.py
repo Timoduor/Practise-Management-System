@@ -3,6 +3,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from hub.models.work_entries import WorkEntries
 from hub.serializers.work_entries_serializer import WorkEntriesSerializer
+from django.db.models import Q
 
 class WorkEntriesViewSet(viewsets.ModelViewSet):
     queryset = WorkEntries.objects.all()
@@ -17,11 +18,17 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
                 case "SUP":
                   return WorkEntries.objects.all()
                 case "INS":
-                  return WorkEntries.objects.filter(entity__instance = user.employee_user.instance)
+                  return WorkEntries.objects.filter(
+                      Q(project__entity__instance = user.employee_user.instance) | Q(sale__entity__instance = user.employee_user.instance)
+                      )
                 case "ENT":
-                    return WorkEntries.objects.filter(project__entity= user.employee_user.entity)  
+                    return WorkEntries.objects.filter(
+                        Q(project__entity= user.employee_user.entity) | Q(sale__entity= user.employee_user.entity)
+                        )  
                 case "UNI":
-                    return WorkEntries.objects.filter(project__unit= user.employee_user.unit)
+                    return WorkEntries.objects.filter(
+                        Q(project__unit= user.employee_user.unit)|
+                                                      Q(sale__unit= user.employee_user.unit))
 
         return WorkEntries.objects.filter(employee = user.employee_user)
     

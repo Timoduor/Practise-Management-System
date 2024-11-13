@@ -8,6 +8,8 @@ from hub.models.project import Project
 from hub.models.project_phase import ProjectPhase
 from hub.models.task import Task
 from hub.models.task_type import TaskType
+from hub.models.sales import Sales
+from hub.models.sales_task import SalesTask
 
 
 class WorkEntries(SoftDeleteModel):
@@ -23,9 +25,11 @@ class WorkEntries(SoftDeleteModel):
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True, related_name="work_entries")
+    sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
+    sales_task = models.ForeignKey(SalesTask, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Work entry on {self.project} - {self.phase} - {self.task}"
+        return f"Work entry on {self.date} - {self.start_time} - {self.end_time}"
 
     def clean(self):
         """

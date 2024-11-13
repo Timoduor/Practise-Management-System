@@ -1,9 +1,11 @@
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from hub.models.task import Task
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from hub.models.absence import Absence
 from hub.serializers.absence_serializer import AbsenceSerializer
+from django.db.models import Q
+
 
 
 class AbsenceViewSet(viewsets.ModelViewSet):
@@ -19,11 +21,14 @@ class AbsenceViewSet(viewsets.ModelViewSet):
                 case "SUP":
                   return Absence.objects.all()
                 case "INS":
-                  return Absence.objects.filter(entity__instance = user.employee_user.instance)
+                  return Absence.objects.filter(Q(project__entity__instance= user.employee_user.instance) |
+                                                  Q(sale__entity__instance = user.employee_user.instance ))   
                 case "ENT":
-                    return Absence.objects.filter(project__entity= user.employee_user.entity)  
+                    return Absence.objects.filter(Q(project__entity= user.employee_user.entity) |
+                                                  Q(sale__entity = user.employee_user.entity ))    
                 case "UNI":
-                    return Absence.objects.filter(project__unit= user.employee_user.unit)
+                    return Absence.objects.filter(Q(project__unit= user.employee_user.unit) |
+                                                  Q(sale__unit = user.employee_user.unit ))   
 
         return Absence.objects.filter(employee = user.employee_user)
     

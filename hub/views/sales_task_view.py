@@ -17,11 +17,11 @@ class SalesTaskViewSet(CommonViewSet):
                 case "SUP":
                   return SalesTask.objects.all()
                 case "INS":
-                  return SalesTask.objects.filter(sale__entity__instance = user.employee_user.instance)
+                  return SalesTask.objects.filter(sales__entity__instance = user.employee_user.instance)
                 case "ENT":
-                    return SalesTask.objects.filter(sale__entity= user.employee_user.entity)  
+                    return SalesTask.objects.filter(sales__entity= user.employee_user.entity)  
                 case "UNI":
-                    return SalesTask.objects.filter(sale__unit= user.employee_user.unit)
+                    return SalesTask.objects.filter(sales__unit= user.employee_user.unit)
 
-        return SalesTask.objects.filter(sale__unit = user.employee_user.entity)
+        return SalesTask.objects.filter(sales__unit = user.employee_user.entity)
 
