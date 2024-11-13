@@ -15,4 +15,4 @@ from hub.views.sales_task_type_view import SalesTaskTypeViewSet
 from hub.views.sales_task_status_view import SalesTaskStatusViewSet
 from hub.views.task_type_view import TaskTypeViewSet
 from hub.views.task_status_view import TaskStatusViewSet
-from hub.views.sales_type_view import SalesTypeViewSet
+from hub.views.sales_status_view import SalesStatusViewSet

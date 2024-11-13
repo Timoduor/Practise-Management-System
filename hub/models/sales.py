@@ -5,7 +5,7 @@ from core.models.entity import Entity
 from core.models.unit import Unit
 from core.models.user import User
 from .customer import Customer
-from .sales_type import SalesType
+from .sales_status import SalesStatus
 
 class Sales(SoftDeleteModel):
     sales_id = models.AutoField(primary_key=True)
@@ -14,7 +14,7 @@ class Sales(SoftDeleteModel):
     sales_description = models.TextField(null=True, blank=True)
     project_value = models.DecimalField(max_digits=10, decimal_places=2)
     expected_order_date = models.DateField()
-    sales_status = models.ForeignKey(SalesType, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales")
+    sales_status = models.ForeignKey(SalesStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales")
     project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
     members = models.ManyToManyField(Employee, blank=True, related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")

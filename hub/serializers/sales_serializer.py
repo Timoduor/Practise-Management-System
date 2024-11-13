@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from hub.models.sales import Sales
-from hub.models.sales_type import SalesType
+from hub.models.sales_status import SalesStatus
 from core.models.user import User
 from core.models.employee import Employee
 from hub.models.customer import Customer
 from .base_serializer import SoftDeleteBaseSerializer
 from .sales_task_serializer import SalesTaskSerializer
-from .sales_type_serializer import SalesTypeSerializer
+from .sales_status_serializer import SalesStatusSerializer
 
 
 class SalesSerializer(SoftDeleteBaseSerializer):
@@ -16,8 +16,8 @@ class SalesSerializer(SoftDeleteBaseSerializer):
     sales_tasks = SalesTaskSerializer(many=True, read_only=True)
     
     # Use PrimaryKeyRelatedField for setting, SalesTypeSerializer for display
-    sales_status = serializers.PrimaryKeyRelatedField(queryset=SalesType.objects.all())  # For write operations
-    sales_status_display = SalesTypeSerializer(source='sales_status', read_only=True)    # For read operations
+    sales_status = serializers.PrimaryKeyRelatedField(queryset=SalesStatus.objects.all())  # For write operations
+    sales_status_display = SalesStatusSerializer(source='sales_status', read_only=True)    # For read operations
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Sales

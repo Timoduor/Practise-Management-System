@@ -16,7 +16,7 @@ from hub.views.sales_task_type_view import SalesTaskTypeViewSet
 from hub.views.sales_task_status_view import SalesTaskStatusViewSet
 from hub.views.task_type_view import TaskTypeViewSet
 from hub.views.task_status_view import TaskStatusViewSet
-from hub.views.sales_type_view import SalesTypeViewSet
+from hub.views.sales_status_view import SalesStatusViewSet
 from hub.views.timesheet_view import TimesheetView
 
 
@@ -37,7 +37,7 @@ router.register(r'sales-task-types', SalesTaskTypeViewSet)
 router.register(r'sales-task-statuses', SalesTaskStatusViewSet)
 router.register(r'task-types', TaskTypeViewSet)
 router.register(r'task-statuses', TaskStatusViewSet)
-router.register(r'sales-types', SalesTypeViewSet)
+router.register(r'sales-statuses', SalesStatusViewSet)
 
 urlpatterns = router.urls
 
