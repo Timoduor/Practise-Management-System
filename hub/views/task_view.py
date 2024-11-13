@@ -19,7 +19,7 @@ class TaskViewSet(CommonViewSet):
                 case "SUP":
                   return Task.objects.all()
                 case "INS":
-                  return Task.objects.filter(entity__instance = user.employee_user.instance)
+                  return Task.objects.filter(project__entity__instance = user.employee_user.instance)
                 case "ENT":
                     return Task.objects.filter(project__entity= user.employee_user.entity)  
                 case "UNI":
