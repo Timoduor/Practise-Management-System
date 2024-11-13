@@ -65,6 +65,26 @@ def create_default_task_types(apps,schema_editor):
         task_types.objects.get_or_create(**type)
   
 
+def create_default_leave_types(apps,schema_editor):
+    leave_types = apps.get_model('hub','LeaveType')
+    default_leave_types = [
+        {
+            'name': 'Parental Leave',
+            'is_paid' : 'True'
+        },
+        {
+            'name': 'Normal Leave',
+            'is_paid': 'True'
+        },
+        {
+            'name': 'Unpaid Leave',
+            'is_paid': 'False'
+        },
+    ]
+
+    for type in default_leave_types:
+        leave_types.objects.get_or_create(**type)
+  
 
 class Migration(migrations.Migration):
 
@@ -76,4 +96,5 @@ class Migration(migrations.Migration):
         migrations.RunPython(create_default_sales_statuses),
         migrations.RunPython(create_default_task_types),
         migrations.RunPython(create_default_task_statuses),
+        migrations.RunPython(create_default_leave_types),
     ]
