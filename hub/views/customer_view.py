@@ -53,7 +53,7 @@ class CustomerViewSet(CommonViewSet):
 
         expected_project_financials = Project.objects.filter(customer=customer, is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
         expected_sales_financials = Sales.objects.filter(customer=customer, is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
-        received_sales_financials = Sales.objects.filter(customer=customer, sales_status= "CLOSED_ACCEPTED" ,is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
+        received_sales_financials = Sales.objects.filter(customer=customer, sales_status__name= "CLOSED_ACCEPTED" ,is_deleted=False).aggregate(total_value=Sum('project_value'))['total_value'] or 0
 
 
 
@@ -62,8 +62,8 @@ class CustomerViewSet(CommonViewSet):
         sales_tasks_count = SalesTask.objects.filter(sale__in=sales, is_deleted=False).count()
 
             # Get counts for completed tasks
-        completed_tasks_count = Task.objects.filter(project__in=projects, task_status="COMPLETED", is_deleted=False).count()
-        completed_sales_tasks_count = SalesTask.objects.filter(sale__in=sales, task_status="COMPLETED", is_deleted=False).count()
+        completed_tasks_count = Task.objects.filter(project__in=projects, task_status__name="COMPLETED", is_deleted=False).count()
+        completed_sales_tasks_count = SalesTask.objects.filter(sale__in=sales, task_status__name="COMPLETED", is_deleted=False).count()
 
         active_tasks_count = tasks_count - completed_tasks_count
         active_sales_tasks_count = sales_tasks_count - completed_sales_tasks_count

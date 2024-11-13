@@ -17,7 +17,7 @@ class ContactViewSet(viewsets.ModelViewSet):
                 case "SUP":
                     return Contact.objects.all()
                 case "INS":
-                  return Contact.objects.filter(customer_entity_instance = user.employee_user.instance)
+                  return Contact.objects.filter(customer__entity__instance = user.employee_user.instance)
                 case "ENT":
                     return Contact.objects.filter(customer__entity= user.employee_user.entity)  
                 case "UNI":
