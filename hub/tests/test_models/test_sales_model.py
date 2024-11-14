@@ -9,7 +9,7 @@ from core.models.entity_type import EntityType
 from core.models.unit_type import UnitType
 from hub.models.customer import Customer
 from hub.models.sales import Sales
-from hub.models.sales_type import SalesType
+from hub.models.sales_status import SalesStatus
 from datetime import date
 
 class SalesModelTest(TestCase):
@@ -51,8 +51,8 @@ class SalesModelTest(TestCase):
             unit=self.unit
         )
 
-        # Setting up a SalesType instance for sales_status
-        self.sales_type = SalesType.objects.create(name="LEAD", description="Lead status")
+        # Setting up a SalesStatus instance for sales_status
+        self.sales_status = SalesStatus.objects.create(name="LEAD", description="Lead status")
 
     def test_create_sales(self):
         # Basic creation of Sales instance with essential fields
@@ -62,7 +62,7 @@ class SalesModelTest(TestCase):
             sales_description="Description of project alpha",
             project_value=10000.00,
             expected_order_date=date(2024, 12, 1),
-            sales_status=self.sales_type,  # Set a valid SalesType instance
+            sales_status=self.sales_status,  # Set a valid SalesStatus instance
             project_manager=self.employee,
             created_by=self.user,
             entity=self.entity,
@@ -70,13 +70,13 @@ class SalesModelTest(TestCase):
         )
         self.assertEqual(sales.sales_name, "Project Alpha")
         self.assertEqual(sales.project_value, 10000.00)
-        self.assertEqual(sales.sales_status, self.sales_type)
+        self.assertEqual(sales.sales_status, self.sales_status)
         self.assertEqual(sales.project_manager, self.employee)
 
     def test_sales_status_type(self):
-        # Create a sales record without assigning a SalesType
+        # Create a sales record without assigning a SalesStatus
         sales = Sales.objects.create(
-            sales_name="Project Without SalesType",
+            sales_name="Project Without SalesStatus",
             customer=self.customer,
             project_value=8000.00,
             expected_order_date=date(2024, 12, 1),
