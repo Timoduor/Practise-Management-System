@@ -7,9 +7,12 @@ from .user_serializers import UserSerializer
 from .employee_serializers import EmployeeSerializer
 from .admin_serializers import AdminSerializer
 from .token_serializers import CustomTokenObtainPairSerializer
+from .entity_type_serializers import EntityTypeSerializer
+from .unit_type_serializers import UnitTypeSerializer
 
 
 __all__ = ["SoftDeleteMixin","InstanceSerializer" ,
            "EntitySerializer", "UnitSerializer", 
            "UserSerializer","AdminSerializer" ,
-           "EmployeeSerializer", "CustomTokenObtainPairSerializer"]
+           "EmployeeSerializer", "CustomTokenObtainPairSerializer",
+           "EntityTypeSerializer", "UnitTypeSerializer"]
