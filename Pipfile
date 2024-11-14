@@ -12,6 +12,8 @@ django-cors-headers = "*"
 setuptools = "*"
 djoser = "*"
 django-rest-framework = "*"
+django-environ = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
