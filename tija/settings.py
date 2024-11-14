@@ -12,9 +12,14 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import environ
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 try:
     from .settings_local import *
@@ -25,32 +30,21 @@ except ImportError:
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 
-ALLOWED_HOSTS = ['*']
-
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'KCn9dcAyGL}cmqU1@Z6)'
+# Load settings from the .env file
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env.bool('DEBUG', default=False)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[''])
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "practice_management",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
+        "NAME": env('DATABASE_NAME'),
+        "USER": env('DATABASE_USER'),
+        "PASSWORD": env('DATABASE_PASSWORD'),
+        "HOST": env('DATABASE_HOST', default='127.0.0.1'),
+        "PORT": env('DATABASE_PORT'),
     },
-    #FOR RUNNING ON TESSY'S MACHINE DELETE LATER
-    "backup": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "practice_management",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "192.168.110.208",
-        "PORT": "5432",
-    }
 }
-
 
 # Application definition
 
@@ -179,24 +173,19 @@ DJOSER = {
     "LOGIN_FIELD": "email",
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 SITE_NAME = "TIJA Practice Management System"
 
 #Change this in production
-DOMAIN = 'localhost:3000'
+DOMAIN = env('DOMAIN')
 
-# # settings.py
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Email backend configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env.int('EMAIL_PORT')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
-# # SMTP server configuration for Outlook
-# EMAIL_HOST = 'smtp.office365.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True  # Use TLS for secure connection
-# EMAIL_HOST_USER = 'dev@sbsl.co.ke'  # Your Outlook email address
-# EMAIL_HOST_PASSWORD = 'your-password'               # Your Outlook account password
-
-# # Optional: Customize sender and recipient defaults
-# DEFAULT_FROM_EMAIL = 'Your Name <dev@sbsl.co.ke>'
-# SERVER_EMAIL = 'dev@sbsl.co.ke'
