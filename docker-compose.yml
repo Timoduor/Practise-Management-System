@@ -23,14 +23,15 @@ services:
   frontend:
     build:
       context: ../tija_pms_frontend # Path to the frontend directory
-      dockerfile: Dockerfile # If you named it frontend.Dockerfile, change this to frontend.Dockerfile
+      dockerfile: Dockerfile # Assuming this is the correct path
     volumes:
       - ../tija_pms_frontend:/app  # Mounts frontend code for hot reloading during development
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development  # Adjust as needed
+      - NODE_ENV=development  # Ensure it's set to development for npm run dev
     depends_on:
       - web  # Ensures the backend is up before starting the frontend
+
 volumes:
   postgres_data:
