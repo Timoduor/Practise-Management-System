@@ -10,7 +10,7 @@ docker compose build
 
 # Start containers in detached mode
 echo "Starting containers..."
-docker compose up -d
+docker compose up -d db web frontend
 
 # Wait for the database container to initialize (optional but recommended)
 echo "Waiting for database to start..."
@@ -33,5 +33,5 @@ docker compose exec web python manage.py collectstatic --noinput
 # docker-compose exec web python manage.py createsuperuser --noinput --username admin --email admin@example.com
 
 # Show logs
-echo "Starting logs..."
-docker compose logs -f
+echo "Starting logs for web and frontend services..."
+docker compose logs -f web frontend
