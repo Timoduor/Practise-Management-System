@@ -2,10 +2,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from hub.models.project import Project
 from django.db.models import Sum
+from hub.models.work_entries import WorkEntries
 from rest_framework import  status
 from rest_framework.decorators import action
 from .common_viewset import CommonViewSet
 from hub.serializers.project_serializer import ProjectSerializer
+from core.serializers.employee_serializers import EmployeeSerializer
+from hub.serializers.work_entries_serializer import WorkEntriesSerializer
 from django.db.models import Q
 from django.utils.timezone import now
 from hub.models.task import Task

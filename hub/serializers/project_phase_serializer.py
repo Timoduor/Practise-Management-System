@@ -29,3 +29,15 @@ class ProjectPhaseSerializer(SoftDeleteBaseSerializer):
 
         return data
     
+    def create(self, validated_data):
+        members = validated_data.pop('members', [])
+        phase = ProjectPhase.objects.create(**validated_data)
+        phase.members.set(members)  # Add members to the project
+        return phase
+
+    def update(self, instance, validated_data):
+        members = validated_data.pop('members', [])
+        instance = super().update(instance, validated_data)
+        instance.members.set(members)  # Update the members of the project
+        return instance
+    
