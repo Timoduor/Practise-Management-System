@@ -6,7 +6,7 @@ from .base_admin import SoftDeleteAdmin
 
 # Register Unit model with custom admin configuration
 @admin.register(UnitType)
-class UnitType(SoftDeleteAdmin):
-    list_display = ('name', 'unit_type' 'description')  # Fields in list view
-    search_fields = ('name', 'unit_type')  # Searchable fields
-    list_filter = ('unit_type', 'description')  # Filters in the sidebar
+class UnitTypeAdmin(SoftDeleteAdmin):
+    list_display = ('name', 'description')  # Fields in list view
+    search_fields = ('name', )  # Searchable fields
+    list_filter = ('name', )  # Filters in the sidebar
