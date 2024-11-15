@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from hub.models.work_entries import WorkEntries
 from hub.serializers.work_entries_serializer import WorkEntriesSerializer
 from django.db.models import Q
+from rest_framework import status
 
 class WorkEntriesViewSet(viewsets.ModelViewSet):
     queryset = WorkEntries.objects.all()
