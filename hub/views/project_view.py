@@ -116,14 +116,14 @@ class ProjectViewSet(CommonViewSet):
 
         # Ongoing projects (current date is between start_date and end_date)
         ongoing_projects = Project.objects.filter(
-            Q(start_date_lte=current_date) & (Q(end_dategte=current_date) | Q(end_date_isnull=True)),
+            Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
             is_deleted=False,
             **project_filter
         ).count()
 
         # Estimated project value for ongoing projects in the current month
         estimated_project_value = Project.objects.filter(
-            Q(start_date_lte=current_date) & (Q(end_dategte=current_date) | Q(end_date_isnull=True)),
+            Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
             is_deleted=False,
             **project_filter
         ).aggregate(total_value=Sum('project_value'))['total_value'] or 0
@@ -131,11 +131,11 @@ class ProjectViewSet(CommonViewSet):
         # Projects with tasks needing attention (IN_PROGRESS or PENDING) for ongoing projects
         projects_needing_attention = Task.objects.filter(
             project__in=Project.objects.filter(
-                Q(start_date_lte=current_date) & (Q(end_dategte=current_date) | Q(end_date_isnull=True)),
+                Q(start_date__lte=current_date) & (Q(end_date__gte=current_date) | Q(end_date__isnull=True)),
                 is_deleted=False,
                 **project_filter
             ),
-            task_status__in=["IN_PROGRESS", "PENDING"],
+            task_status__name__in=["IN_PROGRESS", "PENDING"],
             is_deleted=False
         ).count()
 
