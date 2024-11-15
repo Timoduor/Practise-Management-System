@@ -5,6 +5,7 @@ from rest_framework import  status
 from rest_framework.decorators import action
 from .common_viewset import CommonViewSet
 from hub.serializers.sales_serializer import SalesSerializer
+from core.serializers.employee_serializers import EmployeeSerializer
 from django.utils.timezone import now
 from hub.models.sales import Sales
 from hub.models.sales_task import SalesTask
@@ -84,7 +85,7 @@ class SalesViewSet(CommonViewSet):
         sales_this_month = Sales.objects.filter(
             expected_order_date__month=current_month,
             expected_order_date__year=current_year,
-            sales_status="CLOSED_ACCEPTED",
+            sales_status__name="CLOSED_ACCEPTED",
             is_deleted=False,
             **sales_filter
         ).aggregate(total_sales=Sum('project_value'))['total_sales'] or 0
@@ -92,7 +93,7 @@ class SalesViewSet(CommonViewSet):
         estimated_sales = Sales.objects.filter(
             expected_order_date__month=current_month,
             expected_order_date__year=current_year,
-            sales_status="OPPORTUNITY",
+            sales_status__name="OPPORTUNITY",
             is_deleted=False,
             **sales_filter,
         ).aggregate(total_estimated=Sum('project_value'))['total_estimated'] or 0
@@ -101,7 +102,7 @@ class SalesViewSet(CommonViewSet):
         cases_needing_attention = SalesTask.objects.filter(
             sale__expected_order_date__month=current_month,
             sale__expected_order_date__year=current_year,
-            task_status__in=["IN_PROGRESS", "PENDING"],
+            task_status__name__in=["IN_PROGRESS", "PENDING"],
             sale__is_deleted=False,
             **tasks_filter
         ).count()
@@ -118,7 +119,7 @@ class SalesViewSet(CommonViewSet):
         closed_sales_count = Sales.objects.filter(
             expected_order_date__month=current_month,
             expected_order_date__year=current_year,
-            sales_status="CLOSED_ACCEPTED",
+            sales_status__name="CLOSED_ACCEPTED",
             is_deleted=False,
             **sales_filter
         ).count()
