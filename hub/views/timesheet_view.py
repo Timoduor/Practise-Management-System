@@ -39,7 +39,7 @@ class TimesheetView(APIView):
 
         work_entries = WorkEntries.objects.filter(
             user=user, date__range=[week_start,week_end]
-        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type','customer__customer_name' , 'task_id' ,'task__task_name','project__project_name','phase__phase_name','sale', 'sale__sales_name','sales_task__task_name' ,'description')
+        ).values('work_entries_id','date', 'start_time', 'end_time','duration','task_type__name','customer__customer_name' , 'task_id' ,'task__task_name','project__project_name','phase__phase_name','sale', 'sale__sales_name','sales_task__task_name' ,'description')
 
         absences = Absence.objects.filter(
             user=user, absence_date__range=[week_start,week_end]
