@@ -11,7 +11,7 @@ class AbsenceSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
     sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), required=False, allow_null=True)
 
-    leave_type = serializers.PrimaryKeyRelatedField(queryset=LeaveType.objects.all(), required=False)
+    leave_type = serializers.SerializerMethodField()
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Absence
@@ -62,3 +62,5 @@ class AbsenceSerializer(SoftDeleteBaseSerializer):
         instance.duration = end_datetime - start_datetime
         return super().update(instance, validated_data)
 
+    def get_leave_type(self,obj):
+        return obj.leave_type.name if obj.leave_type else None

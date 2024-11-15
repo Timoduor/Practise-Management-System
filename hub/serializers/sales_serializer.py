@@ -17,7 +17,7 @@ class SalesSerializer(SoftDeleteBaseSerializer):
     
     # Use PrimaryKeyRelatedField for setting, SalesTypeSerializer for display
     sales_status = serializers.PrimaryKeyRelatedField(queryset=SalesStatus.objects.all())  # For write operations
-    sales_status_display = SalesStatusSerializer(source='sales_status', read_only=True)    # For read operations
+    sales_status_display = serializers.SerializerMethodField()   # For read operations
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Sales
@@ -40,3 +40,8 @@ class SalesSerializer(SoftDeleteBaseSerializer):
                 })
 
         return data
+    
+    
+
+    def get_sales_status_display(self, obj):
+        return obj.sales_status.name if obj.sales_status else None

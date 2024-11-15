@@ -19,6 +19,10 @@ class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Use `user` field
     user_detail = UserSerializer(source='user', read_only=True)  # Nested serialization for user details
 
+    entity = serializers.SerializerMethodField()
+    instance = serializers.SerializerMethodField()
+    unit = serializers.SerializerMethodField()
+
     # Uncommented code for alternative user field representations
     # user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     # user = UserSerializer(read_only=True)
@@ -42,8 +46,11 @@ class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         if request_user.is_staff or request_user == instance.user:
             # Pop fields specific to Employee relationships
             employee_instance = validated_data.pop('employee_instance', None)
+            print(employee_instance)
             employee_entity = validated_data.pop('employee_entity', None)
+            print(employee_entity)
             employee_unit = validated_data.pop('employee_unit', None)
+            print(employee_unit)
 
             print(instance)
             print("employee_entity", employee_entity)
@@ -77,5 +84,14 @@ class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
             raise serializers.ValidationError({
                 'authorization': 'You are not authorized to update this employee data.'
             })
+    
 
+    def get_entity(self, obj):
+        return obj.entity.name if obj.entity else None
+
+    def get_instance(self, obj):
+        return obj.instance.name if obj.instance else None
+
+    def get_unit(self, obj):
+        return obj.unit.name if obj.unit else None
    

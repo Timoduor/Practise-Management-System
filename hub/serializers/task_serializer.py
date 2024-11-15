@@ -15,7 +15,7 @@ class TaskSerializer(SoftDeleteBaseSerializer):
 
     # Use PrimaryKeyRelatedField for setting task_status, nested serializer for read
     task_status = serializers.PrimaryKeyRelatedField(queryset=TaskStatus.objects.all())
-    task_status_display = TaskStatusSerializer(source='task_status', read_only=True)
+    task_status_display = serializers.SerializerMethodField()
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Task
@@ -41,3 +41,6 @@ class TaskSerializer(SoftDeleteBaseSerializer):
             raise serializers.ValidationError("The phase must belong to the selected project.")
 
         return data
+    
+    def get_task_status_display(self,obj):
+        return obj.task_status.name if obj.task_status else None
