@@ -3,14 +3,10 @@ from core.models.instance import Instance
 from core.models.entity import Entity
 from core.models.unit import Unit
 from django.contrib.contenttypes.models import ContentType
-
 from core.serializers.admin_serializers import AdminSerializer
-from rest_framework import viewsets
+from rest_framework import viewsets, status  # Import status here
 from django.db import models
 from rest_framework.response import Response
-
-
-
 
 
 # Define a viewset for managing Admin objects
@@ -21,8 +17,6 @@ class AdminViewSet(viewsets.ModelViewSet):
     def create(self, request):
         # Handle user creation with validation and response
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)  # Raise exception if data is invalid
-        self.perform_create(serializer)  # Save new user
         serializer.is_valid(raise_exception=True)  # Raise exception if data is invalid
         self.perform_create(serializer)  # Save new user
         headers = self.get_success_headers(serializer.data)
