@@ -65,14 +65,10 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
         employee_unit = validated_data.pop('employee_unit', None)
         if request_user.is_authenticated and hasattr(request_user, 'employee_user'):
             logger.debug("Authenticated request user found with employee_user attribute.")
-            # employee_instance = validated_data.pop('employee_instance', None) #or getattr(request_user.employee_user, 'instance', None)
-            # employee_entity = validated_data.pop('employee_entity', None) #or getattr(request_user.employee_user, 'entity', None)
-            # employee_unit = validated_data.pop('employee_unit', None) #or getattr(request_user.employee_user, 'unit', None)
+
         else:
             logger.debug("No authenticated request user or employee_user attribute found.")
-            # employee_instance = None
-            # employee_entity = None
-            # employee_unit = None
+
 
         industry = validated_data.pop("industry", None)
         instance_name = validated_data.pop("instance_name", None)
@@ -181,3 +177,67 @@ class UserSerializer(serializers.ModelSerializer, SoftDeleteMixin):
                         })
 
         return user
+
+
+    def update(self, instance, validated_data):
+        request_user = self.context['request'].user
+        logger.info("Updating user instance. Request user: %s", request_user)
+
+        # Ensure the user is authorized to update
+        if not (request_user.is_staff or request_user == instance):
+            logger.warning("Unauthorized attempt to update user data by: %s", request_user)
+            raise serializers.ValidationError({
+                'authorization': 'You are not authorized to update this user data.'
+            })
+
+        # Extract employee-related fields from validated data
+        employee_instance = validated_data.pop('employee_instance', None)
+        employee_entity = validated_data.pop('employee_entity', None)
+        employee_unit = validated_data.pop('employee_unit', None)
+
+        logger.debug("Validated data before applying updates: %s", validated_data)
+        logger.debug("Employee-related fields - instance: %s, entity: %s, unit: %s",
+                    employee_instance, employee_entity, employee_unit)
+
+        # Update user fields
+        user_fields = {key: value for key, value in validated_data.items() if hasattr(instance, key)}
+        for attr, value in user_fields.items():
+            setattr(instance, attr, value)
+
+        logger.debug("User fields updated for instance: %s", user_fields)
+
+        # Save user updates
+        instance.save()
+        logger.info("User instance updated and saved: %s", instance)
+
+        # Handle employee instance updates if the user is an employee
+        if hasattr(instance, 'employee_user'):
+            employee = instance.employee_user
+
+            # Update employee fields if provided
+            if employee_instance:
+                employee.instance = employee_instance
+                logger.info("Updated employee instance field to: %s", employee_instance)
+            if employee_entity:
+                # if employee_entity.instance != employee_instance:
+                #     logger.info("Entity Instance")
+                #     logger.warning("Employee entity does not belong to the provided instance.")
+                #     raise serializers.ValidationError({
+                #         'employee_entity': 'The selected entity must belong to the selected instance.'
+                #     })
+                employee.entity = employee_entity
+                logger.info("Updated employee entity field to: %s", employee_entity)
+            if employee_unit:
+                # if employee_unit.entity != employee_entity:
+                #     logger.warning("Employee unit does not belong to the provided entity.")
+                #     raise serializers.ValidationError({
+                #         'employee_unit': 'The selected unit must belong to the selected entity.'
+                #     })
+                employee.unit = employee_unit
+                logger.info("Updated employee unit field to: %s", employee_unit)
+
+            # Save employee updates
+            employee.save()
+            logger.info("Employee data updated and saved for user: %s", instance)
+
+        return instance
