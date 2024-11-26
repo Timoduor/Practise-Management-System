@@ -25,7 +25,7 @@ class ProjectPhaseViewSet(CommonViewSet):
                 case "SUP":
                   return ProjectPhase.objects.all()
                 case "INS":
-                  return ProjectPhase.objects.filter(entity__instance = user.employee_user.instance)
+                  return ProjectPhase.objects.filter(project__entity__instance = user.employee_user.instance)
                 case "ENT":
                     return ProjectPhase.objects.filter(project__entity= user.employee_user.entity)  
                 case "UNI":

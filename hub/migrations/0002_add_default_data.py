@@ -84,7 +84,35 @@ def create_default_leave_types(apps,schema_editor):
 
     for type in default_leave_types:
         leave_types.objects.get_or_create(**type)
-  
+
+
+def create_default_sales_task_statuses(apps, schema_editor):
+    sales_task_status = apps.get_model('hub', 'SalesTaskStatus')
+
+    default_sales_task_statuses = [
+        {'name': 'Not Started', 'description': 'Task not started yet'},
+        {'name': 'In Progress', 'description': 'Task currently in progress'},
+        {'name': 'Completed', 'description': 'Task completed successfully'},
+        {'name': 'On Hold', 'description': 'Task temporarily on hold'},
+    ]
+
+    for status in default_sales_task_statuses:
+        sales_task_status.objects.get_or_create(**status)
+
+
+def create_default_sales_task_types(apps, schema_editor):
+    sales_task_type = apps.get_model('hub', 'SalesTaskType')
+
+    default_sales_task_types = [
+        {'name': 'Call', 'description': 'Outbound or inbound calls'},
+        {'name': 'Meeting', 'description': 'Scheduled meetings with clients'},
+        {'name': 'Email', 'description': 'Email communication tasks'},
+        {'name': 'Follow-up', 'description': 'Tasks to follow up with clients'},
+    ]
+
+    for task_type in default_sales_task_types:
+        sales_task_type.objects.get_or_create(**task_type)
+
 
 class Migration(migrations.Migration):
 
@@ -97,4 +125,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(create_default_task_types),
         migrations.RunPython(create_default_task_statuses),
         migrations.RunPython(create_default_leave_types),
+        migrations.RunPython(create_default_sales_task_statuses),  
+        migrations.RunPython(create_default_sales_task_types),  
     ]
+
