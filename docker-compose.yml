@@ -1,6 +1,5 @@
-
 services:
-  db:
+  dbss:
     image: postgres:15
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
@@ -19,19 +18,24 @@ services:
       - db
     env_file:
       - .env
-
+    command: >
+      bash -c "
+      python manage.py makemigrations &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
+    
   frontend:
     build:
-      context: ../tija_pms_frontend # Path to the frontend directory
-      dockerfile: Dockerfile # Assuming this is the correct path
+      context: ../tija_pms_frontend
+      dockerfile: Dockerfile
     volumes:
-      - ../tija_pms_frontend:/app  # Mounts frontend code for hot reloading during development
+      - ../tija_pms_frontend:/app
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development  # Ensure it's set to development for npm run dev
+      - NODE_ENV=development
     depends_on:
-      - web  # Ensures the backend is up before starting the frontend
+      - web
 
 volumes:
   postgres_data:

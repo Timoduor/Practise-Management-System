@@ -13,22 +13,16 @@ class ExpenseSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False, allow_null=True)
     phase = serializers.PrimaryKeyRelatedField(queryset=ProjectPhase.objects.all(), allow_null=True)
     task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), allow_null=True)
-
     sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), allow_null=True)
     sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), allow_null=True)
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(), allow_null=True)
 
-    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(),allow_null=True)
+    duration = serializers.DurationField(required=False, allow_null=True)  # Added duration field
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Expense
-        fields = ['expense_id', 'user','customer' ,'project', 'phase', 'task','sale','sales_task', 'date', 'value', 'description', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
-        extra_kwargs = {
-            'project': {'required': False, 'allow_null': True},
-            'phase' : {'required': False, 'allow_null': True},
-            'task': {'required': False, 'allow_null': True},
-            'sale': {'required': False, 'allow_null': True},
-            'sales_task': {'required': False, 'allow_null': True},
-        }
+        fields = ['expense_id', 'user', 'customer', 'project', 'phase', 'task', 'sale', 'sales_task', 
+                  'date', 'value', 'description', 'duration', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         project = data.get('project')
@@ -42,4 +36,3 @@ class ExpenseSerializer(SoftDeleteBaseSerializer):
             raise serializers.ValidationError("The selected task does not belong to the selected phase.")
 
         return data
-
