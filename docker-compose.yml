@@ -24,18 +24,18 @@ services:
       python manage.py migrate &&
       python manage.py runserver 0.0.0.0:8000"
     
-  # frontend:
-  #   build:
-  #     context: ../tija_pms_frontend
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ../tija_pms_frontend:/app
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=development
-  #   depends_on:
-  #     - web
+  frontend:
+    build:
+      context: ../tija_pms_frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ../tija_pms_frontend:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
