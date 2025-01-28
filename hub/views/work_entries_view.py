@@ -1,101 +1,73 @@
+from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
+
 from hub.models.work_entries import WorkEntries
 from hub.serializers.work_entries_serializer import WorkEntriesSerializer
-from django.db.models import Q
-from rest_framework import status
+from hub.models.task import Task  # Only needed if you're auto-filling from Task
 
 class WorkEntriesViewSet(viewsets.ModelViewSet):
+    """
+    Any authenticated user can CRUD (create, read, update, delete) WorkEntries.
+    """
     queryset = WorkEntries.objects.all()
     serializer_class = WorkEntriesSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """
+        Return all WorkEntries for any logged-in user.
+        """
         user = self.request.user
+        if user.is_authenticated:
+            return WorkEntries.objects.all()
+        return WorkEntries.objects.none()
 
-        if user.is_staff:
-            match user.admin_user.admin_type.name:
-                case "SUP":
-                  return WorkEntries.objects.all()
-                case "INS":
-                  return WorkEntries.objects.filter(
-                      Q(project__entity__instance = user.employee_user.instance) | Q(sale__entity__instance = user.employee_user.instance)
-                      )
-                case "ENT":
-                    return WorkEntries.objects.filter(
-                        Q(project__entity= user.employee_user.entity) | Q(sale__entity= user.employee_user.entity)
-                        )  
-                case "UNI":
-                    return WorkEntries.objects.filter(
-                        Q(project__unit= user.employee_user.unit)|
-                                                      Q(sale__unit= user.employee_user.unit))
-
-        return WorkEntries.objects.filter(employee = user.employee_user)
-    
     def create(self, request, *args, **kwargs):
-            # Make a mutable copy of the request data
-            data = request.data.copy()
-
-            # Set the user field to the logged-in user
-            data['user'] = request.user.id
-            data['last_updated_by_id'] = request.user.id
-            data['created_by_id'] = request.user.id
-
-            task_id = data.get("task")
-
-            # # Fetch the task instance
-            # if(data.get("task")):
-                
-            #     try:
-            #         task = Task.objects.get(pk=task_id)
-            #     except Task.DoesNotExist:
-            #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            #     # data['project'] = task.project.project_id
-            #     data['phase'] = task.phase.phase_id
-
-            # Pass the data to the serializer and validate it
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-
-            # Save the data
-            self.perform_create(serializer)
-
-            # Return the response
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-    
-    def update(self, request, *args, **kwargs):
-        # Get the instance to be updated using the primary key from URL kwargs
-        instance = self.get_object()
-
-        # Make a mutable copy of the request data
+        """
+        Override create to set certain fields (user, last_updated_by_id, created_by_id) from the request.
+        """
         data = request.data.copy()
+        data['user'] = request.user.id
+        data['last_updated_by_id'] = request.user.id
+        data['created_by_id'] = request.user.id
 
-        # Set the user fields to the logged-in user for tracking updates
+        # If you want to auto-fill project/phase from the Task:
+        # task_id = data.get("task")
+        # if task_id:
+        #     try:
+        #         task = Task.objects.get(pk=task_id)
+        #         # data['project'] = task.project_id
+        #         data['phase'] = task.phase_id
+        #     except Task.DoesNotExist:
+        #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Override update to set 'last_updated_by_id' and optionally auto-fill from the Task.
+        """
+        instance = self.get_object()
+        data = request.data.copy()
         data['last_updated_by_id'] = request.user.id
 
-        # Check if the task exists and set the related project and phase fields
-        task_id = data.get("task")
-        
-        if task_id:
-            try:
-                task = Task.objects.get(pk=task_id)
-            except Task.DoesNotExist:
-                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
+        # If you want to auto-fill project/phase from the Task:
+        # task_id = data.get("task")
+        # if task_id:
+        #     try:
+        #         task = Task.objects.get(pk=task_id)
+        #         # data['project'] = task.project_id
+        #         data['phase'] = task.phase_id
+        #     except Task.DoesNotExist:
+        #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Update project and phase based on the task
-            # data['project'] = task.project.project_id
-            data['phase'] = task.phase.phase_id
-
-        # Pass the data to the serializer along with the instance to update
-        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        # Save the updated data
         self.perform_update(serializer)
-
-        # Return the updated instance data as a response
         return Response(serializer.data, status=status.HTTP_200_OK)
-          
