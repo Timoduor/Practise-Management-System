@@ -10,16 +10,19 @@ from hub.models.sales import Sales
 class AbsenceSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False)
     sale = serializers.PrimaryKeyRelatedField(queryset=Sales.objects.all(), required=False, allow_null=True)
-
     leave_type = serializers.SerializerMethodField()
+    supporting_document = serializers.FileField(required=False, allow_null=True)  # ✅ Added file field
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Absence
-        fields = ['absence_id', 'user', 'absence_date', 'start_time', 'end_time','duration' ,'absence_description', 'project','sale' ,'leave_type', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
+        fields = [
+            'absence_id', 'user', 'absence_date', 'start_time', 'end_time', 'duration',
+            'absence_description', 'supporting_document', 'project', 'sale', 'leave_type',
+            'is_deleted', 'created_at', 'updated_at'
+        ] + SoftDeleteBaseSerializer.Meta.fields
         extra_kwargs = {
-            'project': {'required': False, 'allow_null': True},    
+            'project': {'required': False, 'allow_null': True},
             'sale': {'required': False, 'allow_null': True},
-
         }
 
     def validate(self, data):
@@ -36,7 +39,6 @@ class AbsenceSerializer(SoftDeleteBaseSerializer):
         start_time = validated_data.get('start_time')
         end_time = validated_data.get('end_time')
 
-        
         today = datetime.today().date()  # Common date for both times
 
         # Combine date and time into datetime objects
@@ -45,7 +47,7 @@ class AbsenceSerializer(SoftDeleteBaseSerializer):
 
         # Calculate the difference (this will be a timedelta object)
         validated_data["duration"] = end_datetime - start_datetime
-        
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -60,7 +62,8 @@ class AbsenceSerializer(SoftDeleteBaseSerializer):
 
         # Calculate the difference (this will be a timedelta object)
         instance.duration = end_datetime - start_datetime
+
         return super().update(instance, validated_data)
 
-    def get_leave_type(self,obj):
+    def get_leave_type(self, obj):
         return obj.leave_type.name if obj.leave_type else None

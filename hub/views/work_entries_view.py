@@ -1,11 +1,11 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
-
+from rest_framework.parsers import MultiPartParser, FormParser  # Added parsers for file uploads
 from hub.models.work_entries import WorkEntries
 from hub.serializers.work_entries_serializer import WorkEntriesSerializer
 from hub.models.task import Task  # Only needed if you're auto-filling from Task
+
 
 class WorkEntriesViewSet(viewsets.ModelViewSet):
     """
@@ -14,6 +14,7 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
     queryset = WorkEntries.objects.all()
     serializer_class = WorkEntriesSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)  # To handle file uploads
 
     def get_queryset(self):
         """
@@ -33,16 +34,6 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
         data['last_updated_by_id'] = request.user.id
         data['created_by_id'] = request.user.id
 
-        # If you want to auto-fill project/phase from the Task:
-        # task_id = data.get("task")
-        # if task_id:
-        #     try:
-        #         task = Task.objects.get(pk=task_id)
-        #         # data['project'] = task.project_id
-        #         data['phase'] = task.phase_id
-        #     except Task.DoesNotExist:
-        #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -56,16 +47,6 @@ class WorkEntriesViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data.copy()
         data['last_updated_by_id'] = request.user.id
-
-        # If you want to auto-fill project/phase from the Task:
-        # task_id = data.get("task")
-        # if task_id:
-        #     try:
-        #         task = Task.objects.get(pk=task_id)
-        #         # data['project'] = task.project_id
-        #         data['phase'] = task.phase_id
-        #     except Task.DoesNotExist:
-        #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)

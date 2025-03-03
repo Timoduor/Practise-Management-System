@@ -1,4 +1,3 @@
-from datetime import datetime
 from rest_framework import serializers
 from hub.models.project import Project
 from hub.models.project_phase import ProjectPhase
@@ -8,8 +7,8 @@ from hub.models.sales_task import SalesTask
 from hub.models.customer import Customer
 from hub.models.task_type import TaskType
 from hub.models.work_entries import WorkEntries
-
 from .base_serializer import SoftDeleteBaseSerializer
+
 
 class WorkEntriesSerializer(SoftDeleteBaseSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False, allow_null=True)
@@ -19,11 +18,13 @@ class WorkEntriesSerializer(SoftDeleteBaseSerializer):
     sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), required=False, allow_null=True)
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
     task_type = serializers.PrimaryKeyRelatedField(queryset=TaskType.objects.all(), required=False, allow_null=True)
+    supporting_document = serializers.FileField(required=False, allow_null=True)  # Added file upload
+    duration = serializers.DurationField()  # Added duration field
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = WorkEntries
         fields = [
-            'work_entries_id', 'user', 'date', 'start_time', 'end_time', 'description', 'customer', 
+            'work_entries_id', 'user', 'date', 'duration', 'description', 'supporting_document', 'customer',
             'project', 'phase', 'task', 'sale', 'sales_task', 'task_type', 'is_deleted', 'created_at', 'updated_at'
         ] + SoftDeleteBaseSerializer.Meta.fields
 
@@ -37,11 +38,7 @@ class WorkEntriesSerializer(SoftDeleteBaseSerializer):
         }
 
     def validate(self, data):
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
-
-        if start_time and end_time and start_time > end_time:
-            raise serializers.ValidationError("End time must be after the start time.")
+        # Removed start_time/end_time validation
 
         project = data.get('project')
         phase = data.get('phase')
@@ -56,29 +53,7 @@ class WorkEntriesSerializer(SoftDeleteBaseSerializer):
         return data
 
     def create(self, validated_data):
-        start_time = validated_data.get('start_time')
-        end_time = validated_data.get('end_time')
-
-        if start_time and end_time:
-            today = datetime.today().date()
-            start_datetime = datetime.combine(today, start_time)
-            end_datetime = datetime.combine(today, end_time)
-            validated_data["duration"] = end_datetime - start_datetime
-        else:
-            validated_data["duration"] = None
-
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        start_time = validated_data.get('start_time', instance.start_time)
-        end_time = validated_data.get('end_time', instance.end_time)
-
-        if start_time and end_time:
-            today = datetime.today().date()
-            start_datetime = datetime.combine(today, start_time)
-            end_datetime = datetime.combine(today, end_time)
-            instance.duration = end_datetime - start_datetime
-        else:
-            instance.duration = None
-
         return super().update(instance, validated_data)

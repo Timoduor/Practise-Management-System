@@ -17,12 +17,16 @@ class ExpenseSerializer(SoftDeleteBaseSerializer):
     sales_task = serializers.PrimaryKeyRelatedField(queryset=SalesTask.objects.all(), allow_null=True)
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all(), allow_null=True)
 
-    duration = serializers.DurationField(required=False, allow_null=True)  # Added duration field
+    duration = serializers.DurationField(required=False, allow_null=True)  # Duration field
+    supporting_document = serializers.FileField(required=False, allow_null=True)  # ✅ Added file field
 
     class Meta(SoftDeleteBaseSerializer.Meta):
         model = Expense
-        fields = ['expense_id', 'user', 'customer', 'project', 'phase', 'task', 'sale', 'sales_task', 
-                  'date', 'value', 'description', 'duration', 'is_deleted', 'created_at', 'updated_at'] + SoftDeleteBaseSerializer.Meta.fields
+        fields = [
+            'expense_id', 'user', 'customer', 'project', 'phase', 'task', 'sale', 'sales_task',
+            'date', 'value', 'description', 'duration', 'supporting_document',  # ✅ Included supporting_document
+            'is_deleted', 'created_at', 'updated_at'
+        ] + SoftDeleteBaseSerializer.Meta.fields
 
     def validate(self, data):
         project = data.get('project')

@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.exceptions import ValidationError # type: ignore
+from django.core.exceptions import ValidationError  # type: ignore
 from core.models.base import SoftDeleteModel
 from core.models.user import User
 from .project import Project
@@ -20,9 +20,10 @@ class Expense(SoftDeleteModel):
     sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
     sales_task = models.ForeignKey(SalesTask, on_delete=models.SET_NULL, null=True, blank=True)
     date = models.DateField()
-    duration = models.DurationField(null=True, blank=True, help_text="Duration in hours")  # New field
+    duration = models.DurationField(null=True, blank=True, help_text="Duration in hours")
     value = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(null=True, blank=True)
+    supporting_document = models.FileField(upload_to='expenses/', null=True, blank=True)  # ✅ Added field
 
     def __str__(self):
         return f"Expense {self.expense_id} - {self.value} for {self.duration} hours"

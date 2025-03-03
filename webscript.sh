@@ -10,7 +10,7 @@ docker compose build
 
 # Start containers in detached mode
 echo "Starting containers..."
-docker compose up -d db web frontend
+docker compose up -d localdb web frontend
 
 # Wait for the database container to initialize (optional but recommended)
 echo "Waiting for database to start..."
