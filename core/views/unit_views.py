@@ -1,23 +1,26 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from core.models.unit import Unit
 from core.serializers.unit_serializers import UnitSerializer
+from core.permissions import ReadOnlyUnlessSuperadmin
 
-# Define a viewset for managing Unit objects
 class UnitViewSet(viewsets.ModelViewSet):
-    queryset = Unit.objects.all()  # Retrieve all Unit objects
-    serializer_class = UnitSerializer  # Use UnitSerializer for serialization
+    """
+    ViewSet for managing Units:
+    - All authenticated users can read (GET) all units.
+    - Only superadmins can create/update/delete units.
+    """
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer
+    permission_classes = [IsAuthenticated, ReadOnlyUnlessSuperadmin]
 
     def get_queryset(self):
-        # Customize queryset based on user's role and permissions
+        """
+        Returns all units for all authenticated users.
+        """
         user = self.request.user
-        if user.is_staff:
-            match user.admin_user.admin_type.name:
-                case "SUP":
-                    return Unit.objects.all()
-                case "INS":
-                    return Unit.objects.filter(entity__instance=user.employee_user.instance)
-                case "ENT":
-                    return Unit.objects.filter(entity=user.employee_user.entity)
-                case "UNI":
-                    return Unit.objects.filter(unit=user.employee_user.unit)
-        return Unit.objects.filter(entity=user.employee_user.entity)
+        # If the user is authenticated, return all Units
+        if user.is_authenticated:
+            return Unit.objects.all()
+
+        return Unit.objects.none()

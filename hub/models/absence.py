@@ -16,6 +16,7 @@ class Absence(SoftDeleteModel):
     end_time = models.TimeField()
     duration = models.DurationField(editable=False, null=True, blank=True)
     absence_description = models.TextField(null=True, blank=True)
+    supporting_document = models.FileField(upload_to='absences/', null=True, blank=True)  # ✅ New field added
 
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     sale = models.ForeignKey(Sales, on_delete=models.SET_NULL, null=True, blank=True)
@@ -42,4 +43,3 @@ class Absence(SoftDeleteModel):
 
             self.duration = end_datetime - today
         super().save(*args, **kwargs)
-

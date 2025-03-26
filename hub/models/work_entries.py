@@ -1,5 +1,4 @@
 from django.db import models
-from datetime import datetime
 from django.core.exceptions import ValidationError
 from core.models.base import SoftDeleteModel
 from core.models.user import User
@@ -16,10 +15,9 @@ class WorkEntries(SoftDeleteModel):
     work_entries_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    duration = models.DurationField(editable=False, null=True, blank=True)
+    duration = models.DurationField()  # Changed to required and user-editable
     description = models.TextField(null=True, blank=True)
+    supporting_document = models.FileField(upload_to='work_entries/', null=True, blank=True)  # New field for file uploads
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.ForeignKey(ProjectPhase, on_delete=models.SET_NULL, null=True, blank=True)
@@ -29,7 +27,7 @@ class WorkEntries(SoftDeleteModel):
     sales_task = models.ForeignKey(SalesTask, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Work entry on {self.date} - {self.start_time} - {self.end_time}"
+        return f"Work entry on {self.date} - {self.duration}"
 
     def clean(self):
         """
@@ -40,11 +38,3 @@ class WorkEntries(SoftDeleteModel):
 
         if not any([self.project, self.customer]):
             raise ValidationError("A WorkEntry must be related to at least a Project or Customer.")
-
-    def save(self, *args, **kwargs):
-        if self.start_time and self.end_time:
-            today = datetime.today().date()
-            start_datetime = datetime.combine(today, self.start_time)
-            end_datetime = datetime.combine(today, self.end_time)
-            self.duration = end_datetime - start_datetime
-        super().save(*args, **kwargs)

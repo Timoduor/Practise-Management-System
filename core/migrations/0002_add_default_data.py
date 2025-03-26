@@ -42,7 +42,10 @@ def create_default_unit_types(apps, schema_editor):
     ]
 
     for status in default_statuses:
-        unit_type.objects.get_or_create(**status)
+        # Check if the entry already exists
+        if not unit_type.objects.filter(name=status['name']).exists():
+            unit_type.objects.create(**status)
+
 
 def create_default_entity_types(apps, schema_editor):
     entity_type = apps.get_model('core', 'EntityType')
@@ -84,9 +87,9 @@ def create_default_admin_types(apps,schema_editor):
         },
     ]
 
-    for type in default_task_types:
-        admin_type.objects.get_or_create(**type)
-  
+    for type_data in default_task_types:
+        if not admin_type.objects.filter(name=type_data['name']).exists():
+            admin_type.objects.create(**type_data)
 
 
 class Migration(migrations.Migration):

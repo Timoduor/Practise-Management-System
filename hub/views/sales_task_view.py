@@ -10,18 +10,8 @@ class SalesTaskViewSet(CommonViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Any authenticated user sees all sales tasks
         user = self.request.user
-
-        if user.is_staff:
-            match user.admin_user.admin_type.name:
-                case "SUP":
-                  return SalesTask.objects.all()
-                case "INS":
-                  return SalesTask.objects.filter(sales__entity__instance = user.employee_user.instance)
-                case "ENT":
-                    return SalesTask.objects.filter(sales__entity= user.employee_user.entity)  
-                case "UNI":
-                    return SalesTask.objects.filter(sales__unit= user.employee_user.unit)
-
-        return SalesTask.objects.filter(sales__unit = user.employee_user.entity)
-
+        if user.is_authenticated:
+            return SalesTask.objects.all()
+        return SalesTask.objects.none()

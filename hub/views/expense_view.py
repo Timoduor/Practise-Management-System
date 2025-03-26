@@ -1,98 +1,52 @@
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from hub.models.task import Task
 from rest_framework import viewsets, status
-from hub.models.expense import Expense
-from hub.serializers.expense_serializer import ExpenseSerializer
+from rest_framework.parsers import MultiPartParser, FormParser  # Enables file uploads
 from django.db.models import Q
 
+from hub.models.expense import Expense
+from hub.serializers.expense_serializer import ExpenseSerializer
 
 class ExpenseViewSet(viewsets.ModelViewSet):
+    """
+    Any authenticated user can CRUD Expenses.
+    """
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)  # Allows handling of file uploads
 
     def get_queryset(self):
         user = self.request.user
+        if user.is_authenticated:
+            return Expense.objects.all()
+        return Expense.objects.none()
 
-        if user.is_staff:
-            match user.admin_user.admin_type.name:
-                case "SUP":
-                  return Expense.objects.all()
-                case "INS":
-                  return Expense.objects.filter(Q(project__entity__instance = user.employee_user.instance) |
-                                                Q(sale__entity__instance = user.employee_user.instance )
-                                                )
-                case "ENT":
-                    return Expense.objects.filter(Q(project__entity= user.employee_user.entity) |
-                                                  Q(sale__entity = user.employee_user.entity ))   
-                case "UNI":
-                    return Expense.objects.filter(Q(project__unit= user.employee_user.unit) |              
-                                                  Q(sale__unit = user.employee_user.unit ))
-
-        return Expense.objects.filter(employee = user.employee_user)
-    
     def create(self, request, *args, **kwargs):
-        # Make a mutable copy of the request data
-        data = request.data.copy()
+        """
+        Overridden create method that copies request.data to preserve file uploads.
+        """
+        # Make a copy of request.data so that file data is preserved
+        mutable_data = request.data.copy()
+        mutable_data['user'] = request.user.id
+        mutable_data['last_updated_by_id'] = request.user.id
+        mutable_data['created_by_id'] = request.user.id
 
-        # Set the user field to the logged-in user
-        data['user'] = request.user.id
-        data['last_updated_by_id'] = request.user.id
-        data['created_by_id'] = request.user.id
-
-        # task_id = data.get("task")
-
-        # if task_id:
-        # # Fetch the task instance
-        #     try:
-        #         task = Task.objects.get(pk=task_id)
-        #     except Task.DoesNotExist:
-        #         return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        #     data['phase'] = task.phase.phase_id
-
-        # Pass the data to the serializer and validate it
-        serializer = self.get_serializer(data=data)
+        serializer = self.get_serializer(data=mutable_data)
         serializer.is_valid(raise_exception=True)
-
-        # Save the data
         self.perform_create(serializer)
-
-        # Return the response
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-    
+
     def update(self, request, *args, **kwargs):
-        # Get the instance to be updated using the primary key from URL kwargs
+        """
+        Overridden update method that copies request.data to preserve file uploads.
+        """
         instance = self.get_object()
+        mutable_data = request.data.copy()
+        mutable_data['last_updated_by_id'] = request.user.id
 
-        # Make a mutable copy of the request data
-        data = request.data.copy()
-
-        # Set the user fields to the logged-in user for tracking updates
-        data['last_updated_by_id'] = request.user.id
-
-        # Check if the task exists and set the related project and phase fields
-        task_id = data.get("task")
-        
-        if task_id:
-            try:
-                task = Task.objects.get(pk=task_id)
-            except Task.DoesNotExist:
-                return Response({'error': 'Invalid task.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Update project and phase based on the task
-            data['project'] = task.project.project_id
-            data['phase'] = task.phase.phase_id
-
-        # Pass the data to the serializer along with the instance to update
-        serializer = self.get_serializer(instance, data=data, partial=True)  # Use partial=True to allow partial updates
+        serializer = self.get_serializer(instance, data=mutable_data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        # Save the updated data
         self.perform_update(serializer)
-
-        # Return the updated instance data as a response
         return Response(serializer.data, status=status.HTTP_200_OK)
-    

@@ -4,7 +4,7 @@ from hub.models.absence import Absence
 @admin.register(Absence)
 class AbsenceAdmin(admin.ModelAdmin):
     fieldsets = [
-        ("Absence Info", {"fields": ["absence_date", "start_time", "end_time", "absence_description", "leave_type"]}),
+        ("Absence Info", {"fields": ["absence_date", "start_time", "end_time", "absence_description", "supporting_document", "leave_type"]}),
         ("Project", {"fields": ["project"]}),
         ("User", {"fields": ["user"]}),
     ]

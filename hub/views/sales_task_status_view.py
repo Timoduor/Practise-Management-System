@@ -7,3 +7,4 @@ class SalesTaskStatusViewSet(viewsets.ModelViewSet):
     queryset = SalesTaskStatus.objects.all()
     serializer_class = SalesTaskStatusSerializer
     permission_classes = [IsAuthenticated]
+    # Same logic: all authenticated users have full access
