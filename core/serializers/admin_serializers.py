@@ -9,115 +9,113 @@ from .base_serializers import SoftDeleteMixin
 from django.contrib.contenttypes.models import ContentType
 from .user_serializers import UserSerializer
 
-import string, secrets
-from django.core.mail import send_mail
-
-# Serializer for Admin model with SoftDeleteMixin
 class AdminSerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Primary key field for user
-    user_detail = UserSerializer(source="user", read_only=True)
-    admin_type = serializers.SlugRelatedField(slug_field='name', queryset=AdminType.objects.all())  # Admin type field
-    jurisdiction_name = serializers.SerializerMethodField() 
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=True
+    )
+    user_detail = UserSerializer(
+        source="user",
+        read_only=True
+    )
+    admin_type = serializers.PrimaryKeyRelatedField(
+        queryset=AdminType.objects.all(),
+        required=True
+    )
+    jurisdiction_name = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Admin
-        fields = ['id', 'user','user_detail' ,'admin_type', 'jurisdiction_content_type', 'jurisdiction_object_id', "jurisdiction_name"]
-
+        fields = [
+            'id',
+            'user',
+            'user_detail',
+            'admin_type',
+            'jurisdiction_content_type',
+            'jurisdiction_object_id',
+            'jurisdiction_name',
+            'is_active',
+            'created_at',
+            'updated_at',
+            'created_by',
+            'last_updated_by',
+        ]
+        read_only_fields = [
+            'created_at',
+            'updated_at',
+            'created_by',
+            'last_updated_by',
+        ]
 
     def get_jurisdiction_name(self, obj):
-        """
-        Returns the name of the instance, entity, or unit based on the admin type.
-        """
-        if obj.admin_type.name == "INS" and obj.jurisdiction_object_id:
-            try:
-                instance = Instance.objects.get(pk=obj.jurisdiction_object_id)
-                return instance.name
-            except Instance.DoesNotExist:
-                return None
-        elif obj.admin_type.name == "ENT" and obj.jurisdiction_object_id:
-            try:
-                entity = Entity.objects.get(pk=obj.jurisdiction_object_id)
-                return entity.name
-            except Entity.DoesNotExist:
-                return None
-        elif obj.admin_type.name == "UNI" and obj.jurisdiction_object_id:
-            try:
-                unit = Unit.objects.get(pk=obj.jurisdiction_object_id)
-                return unit.name
-            except Unit.DoesNotExist:
-                return None
+        """Returns the name of the jurisdiction object"""
+        if obj.jurisdiction:
+            return str(obj.jurisdiction)
         return None
-   
+
     def validate(self, data):
-        # Ensure 'user' is an ID
-        user_id = data['user']
-        
-        # If `user` is a User instance instead of an ID, replace it with its ID
-        if isinstance(user_id, User):
-            user_id = user_id.id
-        data['user'] = user_id  # Assign back the ID to data['user']
+        """Validate the admin data"""
+        user = data.get('user')
+        admin_type = data.get('admin_type')
 
-        # Fetch the full User instance with related employee fields
-        try:
-            user = User.objects.select_related(
-                'employee_user__instance', 'employee_user__entity', 'employee_user__unit'
-            ).get(id=user_id)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"user": "User with the given ID does not exist."})
+        if not user or not admin_type:
+            raise serializers.ValidationError(
+                "Both user and admin_type are required."
+            )
 
-        # Temporarily store user instance for validation purposes
-        admin_type_name = data['admin_type']
-
-        # Use get_or_create to ensure the admin type exists or create it if it doesn't
-        admin_type, created = AdminType.objects.get_or_create(
-            name=admin_type_name,
-            defaults={'description': f'{admin_type_name} Admin Type'}
-        )
-        data['admin_type'] = admin_type  # Replace the name with the actual AdminType instance
-
-        # Determine jurisdiction based on admin_type
-        if admin_type.name == "INS":
-            if user.employee_user and user.employee_user.instance:
-                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Instance)
-                data['jurisdiction_object_id'] = user.employee_user.instance.id
-            else:
-                raise serializers.ValidationError({
-                    'jurisdiction': 'User does not have an associated instance.'
-                })
-        elif admin_type.name == "ENT":
-            if user.employee_user and user.employee_user.entity:
-                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Entity)
-                data['jurisdiction_object_id'] = user.employee_user.entity.id
-            else:
-                raise serializers.ValidationError({
-                    'jurisdiction': 'User does not have an associated entity.'
-                })
+        # Set jurisdiction based on admin_type
+        if admin_type.name == "ENT":
+            data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Entity)
         elif admin_type.name == "UNI":
-            if user.employee_user and user.employee_user.unit:
-                data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Unit)
-                data['jurisdiction_object_id'] = user.employee_user.unit.id
-            else:
-                raise serializers.ValidationError({
-                    'jurisdiction': 'User does not have an associated unit.'
-                })
+            data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Unit)
+        elif admin_type.name == "INS":
+            data['jurisdiction_content_type'] = ContentType.objects.get_for_model(Instance)
         else:
-            raise serializers.ValidationError({
-                'admin_type': 'Invalid admin type specified.'
-            })
+            data['jurisdiction_content_type'] = None
+            data['jurisdiction_object_id'] = None
+
+        # Validate jurisdiction object if content type is set
+        if data.get('jurisdiction_content_type') and data.get('jurisdiction_object_id'):
+            try:
+                model_class = data['jurisdiction_content_type'].model_class()
+                jurisdiction_obj = model_class.objects.get(pk=data['jurisdiction_object_id'])
+                
+                # Validate that user has access to this jurisdiction
+                if hasattr(user, 'employee_user'):
+                    employee = user.employee_user
+                    if admin_type.name == "ENT" and employee.entity_id != jurisdiction_obj.id:
+                        raise serializers.ValidationError(
+                            "User does not have access to this entity."
+                        )
+                    elif admin_type.name == "UNI" and employee.unit_id != jurisdiction_obj.id:
+                        raise serializers.ValidationError(
+                            "User does not have access to this unit."
+                        )
+                    elif admin_type.name == "INS" and employee.instance_id != jurisdiction_obj.id:
+                        raise serializers.ValidationError(
+                            "User does not have access to this instance."
+                        )
+            except model_class.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Invalid jurisdiction object ID for {model_class.__name__}"
+                )
 
         return data
 
     def create(self, validated_data):
-        # Convert 'user' ID to User instance if it's not already
-        if isinstance(validated_data['user'], int):
-            validated_data['user'] = User.objects.get(id=validated_data['user'])
-        
+        """Create new admin with proper user tracking"""
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['created_by'] = request.user
+            validated_data['last_updated_by'] = request.user
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # Convert 'user' ID to User instance if it's not already
-        if isinstance(validated_data['user'], int):
-            validated_data['user'] = User.objects.get(id=validated_data['user'])
-        
+        """Update admin with proper user tracking"""
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['last_updated_by'] = request.user
         return super().update(instance, validated_data)
-

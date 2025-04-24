@@ -1,148 +1,155 @@
 from rest_framework import serializers
 from core.models.user import User
-from core.models.admin import Admin
 from core.models.employee import Employee
-from core.models.admin_type import AdminType
 from core.models.instance import Instance
 from core.models.entity import Entity
 from core.models.unit import Unit
-from .base_serializers import SoftDeleteMixin
-from django.contrib.contenttypes.models import ContentType
+from .base_serializers import BaseModelSerializer
 from .user_serializers import UserSerializer
-
-import string, secrets
-from django.core.mail import send_mail
 import logging
 
 logger = logging.getLogger(__name__)
 
+class EmployeeSerializer(BaseModelSerializer):
+    """
+    Serializer for Employee model with nested relationships and proper tracking
+    """
+    # Nested relationships
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    user_detail = UserSerializer(source='user', read_only=True)
+    
+    # Related fields with proper serialization
+    instance = serializers.PrimaryKeyRelatedField(
+        queryset=Instance.objects.all(),
+        required=True
+    )
+    entity = serializers.PrimaryKeyRelatedField(
+        queryset=Entity.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    unit = serializers.PrimaryKeyRelatedField(
+        queryset=Unit.objects.all(),
+        required=False,
+        allow_null=True
+    )
 
-# Serializer for Employee model, including nested UserSerializer for user details
-class EmployeeSerializer(serializers.ModelSerializer, SoftDeleteMixin):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Use `user` field
-    user_detail = UserSerializer(source='user', read_only=True)  # Nested serialization for user details
-
-    entity = serializers.SerializerMethodField()
-    instance = serializers.SerializerMethodField()
-    unit = serializers.SerializerMethodField()
-
-    # Uncommented code for alternative user field representations
-    # user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    # user = UserSerializer(read_only=True)
+    # Readable names for related objects
+    instance_name = serializers.CharField(source='instance.instanceName', read_only=True)
+    entity_name = serializers.CharField(source='entity.entityName', read_only=True)
+    unit_name = serializers.CharField(source='unit.name', read_only=True)
 
     class Meta:
         model = Employee
-        fields = ['id', 'user', 'user_detail', 'instance', 'entity', 'unit']
+        fields = [
+            'id',
+            'user',
+            'user_detail',
+            'instance',
+            'instance_name',
+            'entity',
+            'entity_name',
+            'unit',
+            'unit_name',
+            'is_deleted',
+            'created_at',
+            'updated_at',
+            'created_by',
+            'last_updated_by',
+        ]
+        read_only_fields = [
+            'created_at',
+            'updated_at',
+            'created_by',
+            'last_updated_by',
+        ]
 
     def validate(self, data):
-        print("Data before validation:", self.initial_data)
-        validated_data = super().validate(data)
-        print("Data after validation:", validated_data)
-        return validated_data
+        """
+        Validate the employee data:
+        - Ensure entity belongs to instance if provided
+        - Ensure unit belongs to entity if provided
+        """
+        instance = data.get('instance')
+        entity = data.get('entity')
+        unit = data.get('unit')
 
-    # def update(self, instance, validated_data):
-    #     # Get the request user from the context
-    #     request_user = self.context['request'].user
-    #     print(request_user)
+        if entity and entity.instanceID != instance:
+            raise serializers.ValidationError({
+                'entity': 'Entity must belong to the specified instance.'
+            })
 
-    #     # Check if the request user is either an admin or the user linked to this Employee instance
-    #     if request_user.is_staff or request_user == instance.user:
-    #         # Pop fields specific to Employee relationships
-    #         employee_instance = validated_data.pop('employee_instance', None)
-    #         print(employee_instance)
-    #         employee_entity = validated_data.pop('employee_entity', None)
-    #         print(employee_entity)
-    #         employee_unit = validated_data.pop('employee_unit', None)
-    #         print(employee_unit)
+        if unit:
+            if not entity:
+                raise serializers.ValidationError({
+                    'unit': 'Cannot assign unit without an entity.'
+                })
+            if unit.entity != entity:
+                raise serializers.ValidationError({
+                    'unit': 'Unit must belong to the specified entity.'
+                })
 
-    #         print(instance)
-    #         print("employee_entity", employee_entity)
-    #         print("unit", employee_unit)
-    #         print(validated_data)
+        return super().validate(data)
 
-    #         # Update Employee-related fields if provided
-    #         if employee_instance:
-    #             instance.instance = employee_instance
-    #             print("Instance", instance)
-    #         if employee_entity:
-    #             instance.entity = employee_entity
-    #             print("Entity", instance.entity)
-    #         if employee_unit:
-    #             instance.unit = employee_unit
-    #             print("Unit", instance.unit)
-    #         # Save changes to Employee instance
-    #         instance.save()
-    #         print(instance.save)
-
-    #         # Update User-related fields for the linked user object
-    #         user_data = {key: validated_data[key] for key in validated_data if hasattr(instance.user, key)}
-    #         for attr, value in user_data.items():
-    #             setattr(instance.user, attr, value)
-    #         instance.user.save()
-
-    #         # Return updated Employee instance
-    #         return instance
-    #     else:
-    #         # Raise error if not authorized to perform the update
-    #         raise serializers.ValidationError({
-    #             'authorization': 'You are not authorized to update this employee data.'
-    #         })
+    def create(self, validated_data):
+        """Create employee with proper user tracking"""
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['created_by'] = request.user
+            validated_data['last_updated_by'] = request.user
+        
+        logger.info(
+            "Creating new employee for user %s in instance %s",
+            validated_data.get('user'),
+            validated_data.get('instance')
+        )
+        
+        return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        request_user = self.context['request'].user
-        logger.info("Updating Employee instance. Request user: %s", request_user)
+        """
+        Update employee with proper authorization and tracking
+        """
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError({
+                'authorization': 'No authenticated user found.'
+            })
 
-        if request_user.is_staff or request_user == instance.user:
-            # Extract Employee-related fields from validated data
-            employee_instance = validated_data.pop('employee_instance', None)
-            employee_entity = validated_data.pop('employee_entity', None)
-            employee_unit = validated_data.pop('employee_unit', None)
-
-            logger.debug("Instance before update: %s", instance)
-            logger.debug("Extracted instance: %s", employee_instance)
-            logger.debug("Extracted entity: %s", employee_entity)
-            logger.debug("Extracted unit: %s", employee_unit)
-            logger.debug("Remaining validated data: %s", validated_data)
-
-            # Update instance fields if provided
-            if employee_instance:
-                instance.instance = employee_instance
-                logger.info("Updated instance field to: %s", employee_instance)
-            if employee_entity:
-                instance.entity = employee_entity
-                logger.info("Updated entity field to: %s", employee_entity)
-            if employee_unit:
-                instance.unit = employee_unit
-                logger.info("Updated unit field to: %s", employee_unit)
-
-            # Save the updated Employee instance
-            instance.save()
-            logger.info("Employee instance updated and saved: %s", instance)
-
-            # Update related User fields
-            user_data = {key: validated_data[key] for key in validated_data if hasattr(instance.user, key)}
-            logger.debug("User data to update: %s", user_data)
-            for attr, value in user_data.items():
-                setattr(instance.user, attr, value)
-            instance.user.save()
-            logger.info("User instance updated and saved: %s", instance.user)
-
-            return instance
-        else:
-            logger.warning("Unauthorized attempt to update Employee data by user: %s", request_user)
+        # Check authorization
+        if not (request.user.is_staff or request.user == instance.user):
             raise serializers.ValidationError({
                 'authorization': 'You are not authorized to update this employee data.'
             })
 
+        validated_data['last_updated_by'] = request.user
+        
+        logger.info(
+            "Updating employee %s by user %s",
+            instance,
+            request.user
+        )
 
-    
+        return super().update(instance, validated_data)
 
-    def get_entity(self, obj):
-        return obj.entity.name if obj.entity else None
+    def to_representation(self, instance):
+        """
+        Add additional computed fields to the output
+        """
+        data = super().to_representation(instance)
+        
+        # Add user's full name for convenience
+        if instance.user:
+            data['user_full_name'] = f"{instance.user.firstName} {instance.user.surname}"
+        
+        # Add hierarchical path
+        hierarchy = []
+        if instance.instance:
+            hierarchy.append(instance.instance.instanceName)
+        if instance.entity:
+            hierarchy.append(instance.entity.entityName)
+        if instance.unit:
+            hierarchy.append(instance.unit.name)
+        data['organizational_path'] = ' > '.join(hierarchy)
 
-    def get_instance(self, obj):
-        return obj.instance.name if obj.instance else None
-
-    def get_unit(self, obj):
-        return obj.unit.name if obj.unit else None
-   
+        return data
