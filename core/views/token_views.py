@@ -7,62 +7,108 @@ from rest_framework import status
 from core.serializers.token_serializers import CustomTokenObtainPairSerializer
 from rest_framework.permissions import AllowAny
 
-# Define a custom token obtain pair view to handle authentication token issuance
 class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer  # Use custom serializer for tokens
+    """View for obtaining JWT token pair (access and refresh tokens)"""
+    serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request: Request, *args, **kwargs):
-        # Handle POST request to obtain tokens and set cookies for access and refresh tokens
         response = super().post(request, *args, **kwargs)
         data = response.data
 
-        # Set access token as a cookie with 2-hour max age
+        # Set access token cookie (2 hour expiry)
         response.set_cookie(
-            'access_token', data["access"], httponly=False, samesite='Strict', max_age=60 * 60 * 2
+            'access_token',
+            data["access"],
+            httponly=False,
+            samesite='Strict',
+            secure=True,
+            max_age=60 * 60 * 2
         )
-        # Set refresh token as a cookie with 24-hour max age
+
+        # Set refresh token cookie (24 hour expiry)
         response.set_cookie(
-            'refresh_token', data["refresh"], httponly=True, samesite='Strict', max_age=60 * 60 * 24
+            'refresh_token',
+            data["refresh"],
+            httponly=True,
+            samesite='Strict',
+            secure=True,
+            max_age=60 * 60 * 24
         )
+
         return response
 
-# Define a custom token refresh view to handle refreshing of access tokens
 class CustomTokenRefreshView(TokenRefreshView):
+    """View for refreshing expired access tokens using refresh token"""
+
     def post(self, request, *args, **kwargs):
-        # Retrieve refresh token from cookies and refresh access token if valid
         refresh_token = request.COOKIES.get('refresh_token')
-        if refresh_token:
-            request.data["refresh"] = refresh_token  # Use refresh token from cookie
-
-        response = super().post(request, *args, **kwargs)
-
-        # If refresh is successful, set new access token as cookie
-        if response.status_code == 200:
-            access_token = response.data.get('access')
-            response.set_cookie(
-                'access_token', access_token, httponly=False, samesite='Strict', max_age=60 * 60 * 3
+        if not refresh_token:
+            return Response(
+                {"error": "No refresh token provided"},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        return response
 
-# Define a custom token verification view to verify the validity of access tokens
+        request.data["refresh"] = refresh_token
+
+        try:
+            response = super().post(request, *args, **kwargs)
+            if response.status_code == 200:
+                response.set_cookie(
+                    'access_token',
+                    response.data['access'],
+                    httponly=False,
+                    samesite='Strict',
+                    secure=True,
+                    max_age=60 * 60 * 2
+                )
+            return response
+        except Exception as e:
+            return Response(
+                {"error": "Invalid refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
 class CustomTokenVerifyView(TokenVerifyView):
+    """View for verifying access tokens"""
+
     def post(self, request, *args, **kwargs):
-        # Retrieve access token from cookies to verify its validity
         access_token = request.COOKIES.get("access_token")
-        if access_token:
-            request.data['token'] = access_token  # Add token to request data
+        if not access_token:
+            return Response(
+                {"error": "No access token provided"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        request.data['token'] = access_token
         return super().post(request, *args, **kwargs)
 
-# Define a logout view to handle user logout and token blacklisting
 class LogoutView(APIView):
-    permission_classes = (AllowAny,)  # Allow any user to access this view
-    
+    """View for logging out users and blacklisting their refresh token"""
+    permission_classes = (AllowAny,)
+
     def post(self, request):
         try:
-            # Blacklist the refresh token to prevent further use
-            refresh_token = request.data['refresh_token']
+            refresh_token = request.COOKIES.get('refresh_token')
+            if not refresh_token:
+                return Response(
+                    {"error": "No refresh token provided"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Blacklist the refresh token
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response(status=status.HTTP_205_RESET_CONTENT)
+
+            response = Response(status=status.HTTP_205_RESET_CONTENT)
+            
+            # Delete cookies
+            response.delete_cookie('access_token')
+            response.delete_cookie('refresh_token')
+            
+            return response
+
         except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid refresh token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )

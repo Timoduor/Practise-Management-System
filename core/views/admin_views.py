@@ -4,7 +4,7 @@ from core.models.entity import Entity
 from core.models.unit import Unit
 from django.contrib.contenttypes.models import ContentType
 from core.serializers.admin_serializers import AdminSerializer
-from rest_framework import viewsets, status  # Import status here
+from rest_framework import viewsets, status
 from django.db import models
 from rest_framework.response import Response
 
@@ -15,15 +15,30 @@ class AdminViewSet(viewsets.ModelViewSet):
     serializer_class = AdminSerializer
 
     def create(self, request):
-        # Handle user creation with validation and response
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)  # Raise exception if data is invalid
-        self.perform_create(serializer)  # Save new user
+        serializer.is_valid(raise_exception=True)
+        
+        # Set created_by and last_updated_by to current user
+        serializer.validated_data['created_by'] = request.user
+        serializer.validated_data['last_updated_by'] = request.user
+        
+        self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Set last_updated_by to current user
+        serializer.validated_data['last_updated_by'] = request.user
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
     def get_queryset(self):
-        # Customize queryset based on the user's role and permissions
         user = self.request.user
 
         # Check if the user is staff and has an admin profile
