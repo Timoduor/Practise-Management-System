@@ -3,30 +3,92 @@ from django.contrib.contenttypes.admin import GenericTabularInline
 from django.utils.html import format_html
 from django.utils import timezone
 from core.models.admin import Admin
-from django.contrib import admin
-from django.contrib.contenttypes.admin import GenericTabularInline
-from core.models.admin import Admin
 
-class SoftDeleteAdmin(admin.ModelAdmin):
-    list_display = (
+
+class BaseModelAdmin(admin.ModelAdmin):
+    """
+    Base admin class providing common functionality for all admin interfaces
+    """
+    list_display = [
         '__str__',
-        'is_active',
         'get_created_info',
         'get_updated_info',
-    )
+    ]
     
-    list_filter = (
-        'is_deleted',
+    list_filter = [
         'created_at',
         'updated_at',
-    )
+    ]
     
-    readonly_fields = (
+    readonly_fields = [
         'created_at',
         'updated_at',
         'created_by',
         'last_updated_by',
-    )
+    ]
+
+    def get_created_info(self, obj):
+        """Display creation info with user if available"""
+        if hasattr(obj, 'created_by') and obj.created_by:
+            return format_html(
+                '{}<br><small>by {}</small>',
+                obj.created_at.strftime('%Y-%m-%d %H:%M'),
+                obj.created_by
+            )
+        return obj.created_at.strftime('%Y-%m-%d %H:%M') if hasattr(obj, 'created_at') else '-'
+    get_created_info.short_description = 'Created'
+
+    def get_updated_info(self, obj):
+        """Display last update info with user if available"""
+        if hasattr(obj, 'last_updated_by') and obj.last_updated_by:
+            return format_html(
+                '{}<br><small>by {}</small>',
+                obj.updated_at.strftime('%Y-%m-%d %H:%M'),
+                obj.last_updated_by
+            )
+        return obj.updated_at.strftime('%Y-%m-%d %H:%M') if hasattr(obj, 'updated_at') else '-'
+    get_updated_info.short_description = 'Last Updated'
+
+    def save_model(self, request, obj, form, change):
+        """Track who created/updated the object"""
+        if not change:  # New object
+            if hasattr(obj, 'created_by'):
+                obj.created_by = request.user
+        
+        # Handle both naming conventions for last updated user
+        if hasattr(obj, 'last_updated_by'):
+            obj.last_updated_by = request.user
+        elif hasattr(obj, 'LastUpdatedByID'):
+            obj.LastUpdatedByID = request.user
+            
+        super().save_model(request, obj, form, change)
+
+    def get_fieldsets(self, request, obj=None):
+        """Default fieldsets for models using this admin class"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if not fieldsets:
+            fields = [f.name for f in self.model._meta.fields 
+                     if f.name not in self.readonly_fields]
+            fieldsets = (
+                (None, {
+                    'fields': fields
+                }),
+                ('History', {
+                    'fields': self.readonly_fields,
+                    'classes': ('collapse',)
+                }),
+            )
+        return fieldsets
+
+
+class SoftDeleteAdmin(BaseModelAdmin):
+    """
+    Admin class for models with soft delete functionality
+    Inherits from BaseModelAdmin
+    """
+    list_display = BaseModelAdmin.list_display + ['is_active']
+    
+    list_filter = BaseModelAdmin.list_filter + ['is_deleted']
 
     actions = [
         'soft_delete_selected',
@@ -48,35 +110,6 @@ class SoftDeleteAdmin(admin.ModelAdmin):
             '<span style="color: red;">●</span> Deleted'
         )
     is_active.short_description = 'Status'
-
-    def get_created_info(self, obj):
-        """Display creation info with user if available"""
-        if obj.created_by:
-            return format_html(
-                '{}<br><small>by {}</small>',
-                obj.created_at.strftime('%Y-%m-%d %H:%M'),
-                obj.created_by
-            )
-        return obj.created_at.strftime('%Y-%m-%d %H:%M')
-    get_created_info.short_description = 'Created'
-
-    def get_updated_info(self, obj):
-        """Display last update info with user if available"""
-        if obj.last_updated_by:
-            return format_html(
-                '{}<br><small>by {}</small>',
-                obj.updated_at.strftime('%Y-%m-%d %H:%M'),
-                obj.last_updated_by
-            )
-        return obj.updated_at.strftime('%Y-%m-%d %H:%M')
-    get_updated_info.short_description = 'Last Updated'
-
-    def save_model(self, request, obj, form, change):
-        """Track who created/updated the object"""
-        if not change:  # New object
-            obj.created_by = request.user
-        obj.last_updated_by = request.user
-        obj.save()
 
     def soft_delete_selected(self, request, queryset):
         """Soft delete selected objects"""
@@ -100,24 +133,11 @@ class SoftDeleteAdmin(admin.ModelAdmin):
         self.message_user(request, f"{count} items have been permanently deleted.")
     hard_delete_selected.short_description = "⚠️ Permanently delete selected items"
 
-    def get_fieldsets(self, request, obj=None):
-        """Default fieldsets for models using this admin class"""
-        fieldsets = super().get_fieldsets(request, obj)
-        if not fieldsets:
-            fields = [f.name for f in self.model._meta.fields if f.name not in self.readonly_fields]
-            fieldsets = (
-                (None, {
-                    'fields': fields
-                }),
-                ('History', {
-                    'fields': self.readonly_fields,
-                    'classes': ('collapse',)
-                }),
-            )
-        return fieldsets
-
 
 class JurisdictionInline(GenericTabularInline):
+    """
+    Inline admin for jurisdiction relationships
+    """
     model = Admin
     extra = 1
     ct_fk_field = "jurisdiction_object_id"

@@ -10,10 +10,12 @@ from .entity_type_admin import EntityTypeAdmin
 from .unit_type_admin import UnitTypeAdmin
 from .industry_sector_admin import IndustrySectorAdmin
 from .organisation_data_admin import OrganisationDataAdmin
+from .organisation_chart_admin import OrganisationChartAdmin
+from .organisation_chart_position_assignment_admin import OrganisationChartPositionAssignmentAdmin
 
 __all__  = [
     "AdminAdmin", "AdminTypeAdmin", "SoftDeleteAdmin",
     "EmployeeAdmin", "EntityAdmin", "InstanceAdmin",
     "UnitAdmin", "UserAdmin", "UnitTypeAdmin", "EntityTypeAdmin",
-    "IndustrySectorAdmin", "OrganisationDataAdmin"  
+    "IndustrySectorAdmin", "OrganisationDataAdmin", "OrganisationChartAdmin", "OrganisationChartPositionAssignmentAdmin"
 ]

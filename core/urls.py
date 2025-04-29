@@ -19,6 +19,7 @@ router.register(r"units", UnitViewSet, basename="unit")
 router.register(r"entity-types", EntityTypeViewSet, basename="entity_type")
 router.register(r"unit-types", UnitTypeViewSet, basename="unit_type")
 router.register(r"admin-types", AdminTypeViewSet, basename="admin_type")
-
+router.register('organisation-positions', OrganisationChartPositionAssignmentViewSet,basename='organisation_position')
+router.register('organisation-charts', OrganisationChartViewSet,basename='organisation_chart')
 
 urlpatterns = router.urls
