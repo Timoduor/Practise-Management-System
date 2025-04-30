@@ -8,6 +8,8 @@ from rest_framework.routers import DefaultRouter
 from core.views.entity_type_views import EntityTypeViewSet
 from core.views.unit_type_views import UnitTypeViewSet
 from core.views.admin_type_views import AdminTypeViewSet
+from core.views.organisation_chart_views import OrganisationChartViewSet
+from core.views.organisation_chart_position_assignments_views import OrganisationChartPositionAssignmentViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename="user")
