@@ -71,7 +71,7 @@ class OrganisationChartAdmin(BaseModelAdmin):
         if obj.entityID:
             return format_html(
                 '<a href="{}">{}</a>',
-                f'/admin/core/entity/{obj.entityID.id}/change/',
+                f'/admin/core/entity/{obj.entityID.pk}/change/',
                 str(obj.entityID)
             )
         return "-"

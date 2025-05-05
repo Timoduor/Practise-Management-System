@@ -41,6 +41,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        # If user is not authenticated, return empty queryset
+        if not user.is_authenticated:
+            result = Employee.objects.none()
+
+            return {"message": "User is not authenticated", "data": result}
+
         # Check if the user is staff and has an admin profile
         if user.is_staff and hasattr(user, 'admin_user'):
             admin_user = user.admin_user
@@ -66,9 +72,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 return Employee.objects.filter(unit=unit)
             else:
                 return Employee.objects.none()
-        else:
-            # Non-staff users can only see employees in their entity
+        elif hasattr(user, 'employee_user'):
+            # Regular employees can only see employees in their entity
             return Employee.objects.filter(entity=user.employee_user.entity)
+        else:
+            # Users without employee profile can't see any employees
+            return {"message": "User does not have employee profile", "data": Employee.objects.none()}
 
     def get_all_entities(self, parent_entity):
         # Recursive function to get all descendant entities

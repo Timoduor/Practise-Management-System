@@ -94,8 +94,8 @@ class IndustrySectorAdmin(SoftDeleteAdmin):
         if obj.LastUpdatedByID:
             return format_html(
                 'By {} {}',
-                obj.LastUpdatedByID.firstName,
-                obj.LastUpdatedByID.surname
+                obj.LastUpdatedByID.first_name,
+                obj.LastUpdatedByID.last_name
             )
         return '-'
     get_last_updated.short_description = 'Last Updated By'
