@@ -71,20 +71,20 @@ class EmployeeAdmin(SoftDeleteAdmin):
         if obj.user:
             return format_html(
                 '<strong>{} {}</strong><br><small>{}</small>',
-                obj.user.firstName,
-                obj.user.surname,
+                obj.user.first_name,
+                obj.user.last_name,
                 obj.user.email
             )
         return "No user assigned"
     get_employee_name.short_description = 'Employee'
-    get_employee_name.admin_order_field = 'user__firstName'
+    get_employee_name.admin_order_field = 'user__first_name'
 
     def get_instance(self, obj):
         """Display instance with custom formatting"""
         if obj.instance:
             return format_html(
                 '<span style="color: #666;">{}</span>',
-                obj.instance.name
+                obj.instance.instanceName
             )
         return "-"
     get_instance.short_description = 'Instance'
