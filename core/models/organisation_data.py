@@ -43,5 +43,11 @@ class OrganisationData(models.Model):
     Lapsed = models.CharField(max_length=10, choices=LAPSED_CHOICES)
     Suspended = models.CharField(max_length=10, choices=SUSPENDED_CHOICES)
 
+    # Default manager
+    objects = models.Manager()
+
+    # Custom manager to include all records (active and inactive)
+    all_objects = models.Manager()
+
     def __str__(self):
         return self.orgName

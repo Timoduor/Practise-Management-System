@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from core.models.industry_sector import IndustrySector
 from .base_admin import SoftDeleteAdmin
+from django.db import models
 
 @admin.register(IndustrySector)
 class IndustrySectorAdmin(SoftDeleteAdmin):

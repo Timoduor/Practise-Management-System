@@ -18,5 +18,11 @@ class IndustrySector(models.Model):
     )
     Suspended = models.CharField(max_length=1, choices=SUSPENDED_CHOICES, default='N')
 
+    # Custom manager to include all records (active and inactive)
+    all_objects = models.Manager()
+
+    # Default Manager
+    objects = models.Manager()
+
     def __str__(self):
         return self.industryTitle

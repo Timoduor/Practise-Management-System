@@ -67,7 +67,7 @@ class UserSerializer(BaseModelSerializer):
             'instance_name',
             'industry',
             'created_at',
-            'updated_at',
+            'updated_at'
             'last_updated_by',
             'created_by',
         ]
@@ -107,7 +107,7 @@ class UserSerializer(BaseModelSerializer):
             admin = obj.admin_user
             roles.append({
                 'role': f'{admin.admin_type.name} Administrator',
-                'jurisdiction': str(admin.get_jurisdiction())
+                'jurisdiction': str(admin.jurisdiction) if admin.jurisdiction else 'Global'
             })
             
         if hasattr(obj, 'employee_user'):

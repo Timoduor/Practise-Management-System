@@ -32,9 +32,10 @@ class CustomUserManager(BaseUserManager):
         user = self.create_user(email, password, **extra_fields)
         admin_type, created = AdminType.objects.get_or_create(
             name="SUP",
-            defaults={"description": "Superuser with all permissions",
-                      "created_by": user,
-                      'last_updated_by': user}
+            defaults={"description": "Superuser with all permissions"
+                      #"created_by": user,
+                      #'last_updated_by': user
+                    }
         )
 
         # Create an Admin entry for the superuser
@@ -44,8 +45,8 @@ class CustomUserManager(BaseUserManager):
                 'admin_type': admin_type,
                 'jurisdiction_content_type': None,
                 'jurisdiction_object_id': None,
-                'last_updated_by': None,
-                'created_by': None
+                #'last_updated_by': None,
+                #'created_by': None
             }
         )
         return user
@@ -59,6 +60,9 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True, null=True)  # Optional phone number
     address = models.TextField(blank=True, null=True)  # Optional address
     dob = models.DateField(blank=True, null=True)  # Optional date of birth
+    created_at = models.DateTimeField(auto_now_add=True)  # Auto-set on record creation
+    last_updated_by = models.ForeignKey("core.User", null=True, blank=True, on_delete=models.DO_NOTHING, related_name='%(class)s_last_updated_by')  # User who last updated
+
 
     # Set email as the unique identifier for authentication
     username = None
