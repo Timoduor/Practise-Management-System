@@ -59,7 +59,7 @@ class UnitSerializer(BaseModelSerializer):
     def get_full_name(self, obj):
         """Generate full name with entity and unit name"""
         if obj.entity:
-            return f"{obj.entity.name} - {obj.name}"
+            return f"{obj.entity.entityName} - {obj.name}"
         return obj.name
 
     def validate_name(self, value):
@@ -132,7 +132,7 @@ class UnitSerializer(BaseModelSerializer):
         
         # Add entity path if available
         if instance.entity:
-            data['entity_path'] = instance.entity.name
+            data['entity_path'] = instance.entity.entityName
             if hasattr(instance.entity, 'parent'):
                 parent = instance.entity.parent
                 while parent:

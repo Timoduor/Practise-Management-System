@@ -18,7 +18,7 @@ class InstanceSerializer(BaseModelSerializer):
     )
     
     # Additional fields
-    industry_title = serializers.CharField(source='industrySector.industryTitle', read_only=True)
+    industry_title = serializers.CharField(read_only=True)
     entities_count = serializers.SerializerMethodField()
 
     class Meta:

@@ -4,6 +4,8 @@ from .unit_serializers import UnitSerializer
 from core.models.entity import Entity
 from core.models.industry_sector import IndustrySector
 from core.models.organisation_data import OrganisationData
+from core.models.entity_type import EntityType
+from core.models.instance import Instance
 
 class EntitySerializer(BaseModelSerializer):
     """
@@ -14,34 +16,29 @@ class EntitySerializer(BaseModelSerializer):
     
     # Related fields
     entityTypeID = serializers.PrimaryKeyRelatedField(
-        source='entityTypeID',
-        queryset=Entity.objects.all(),
+        queryset=EntityType.objects.all(),
         required=True
     )
     
     instanceID = serializers.PrimaryKeyRelatedField(
-        source='instanceID',
-        queryset=Entity.objects.all(),
+        queryset=Instance.objects.all(),
         required=False,
         allow_null=True
     )
     
     orgDataID = serializers.PrimaryKeyRelatedField(
-        source='orgDataID',
         queryset=OrganisationData.objects.all(),
         required=False,
         allow_null=True
     )
     
     entityParentID = serializers.PrimaryKeyRelatedField(
-        source='entityParentID',
         queryset=Entity.objects.all(),
         required=False,
         allow_null=True
     )
     
     industrySectorID = serializers.PrimaryKeyRelatedField(
-        source='industrySectorID',
         queryset=IndustrySector.objects.all(),
         required=False,
         allow_null=True
@@ -54,6 +51,9 @@ class EntitySerializer(BaseModelSerializer):
     
     # Child entities
     child_entities = serializers.SerializerMethodField()
+
+    # Status field
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Entity
@@ -82,6 +82,7 @@ class EntitySerializer(BaseModelSerializer):
             'Suspended',
             'child_entities',
             'units',
+            'status',
             'is_deleted',
             'created_at',
             'updated_at',
@@ -107,7 +108,7 @@ class EntitySerializer(BaseModelSerializer):
     def validate(self, data):
         """
         Validate the entity data:
-        - Ensure parent entity belongs to same instance if provided
+        - Ensure parent entity belongs to the same instance if provided
         - Validate entity type
         - Check for circular parent references
         """
@@ -130,6 +131,12 @@ class EntitySerializer(BaseModelSerializer):
                     'entityParentID': 'Parent entity must belong to the same instance.'
                 })
 
+        # Ensure instanceID is provided
+        if not instance:
+            raise serializers.ValidationError({
+                'instanceID': 'An instance must be specified for the entity.'
+            })
+
         return super().validate(data)
 
     def create(self, validated_data):
@@ -143,6 +150,10 @@ class EntitySerializer(BaseModelSerializer):
             # If no instance provided, use user's instance
             if not validated_data.get('instanceID') and hasattr(request.user, 'employee_user'):
                 validated_data['instanceID'] = request.user.employee_user.instance
+            elif not validated_data.get('instanceID'):
+                raise serializers.ValidationError({
+                    'instanceID': 'An instance must be specified for the entity.'
+                })
 
         return super().create(validated_data)
 
@@ -159,17 +170,6 @@ class EntitySerializer(BaseModelSerializer):
         """Add additional computed fields to the output"""
         data = super().to_representation(instance)
         
-        # Add status information
-        data['status'] = []
-        if instance.Suspended:
-            data['status'].append('Suspended')
-        if instance.Lapsed:
-            data['status'].append('Lapsed')
-        if instance.is_deleted:
-            data['status'].append('Deleted')
-        if not data['status']:
-            data['status'].append('Active')
-        
         # Add hierarchical path
         hierarchy = []
         current = instance
@@ -179,9 +179,26 @@ class EntitySerializer(BaseModelSerializer):
         data['entity_path'] = ' > '.join(hierarchy)
 
         return data
+    
+    def get_status(self, obj):
+        """Compute the status of the entity"""
+        status = []
+        if obj.Suspended:
+            status.append('Suspended')
+        if obj.Lapsed:
+            status.append('Lapsed')
+        if obj.is_deleted:
+            status.append('Deleted')
+        if not status:
+            status.append('Active')
+        return ', '.join(status)
 
 class EntityListSerializer(EntitySerializer):
     """Simplified serializer for list views"""
+
+    # Explicitly declare entity_path as a SerializerMethodField
+    entity_path = serializers.SerializerMethodField()
+
     class Meta(EntitySerializer.Meta):
         fields = [
             'entityID',
@@ -190,4 +207,27 @@ class EntityListSerializer(EntitySerializer):
             'entityCity',
             'entityCountry',
             'status',
+            'entity_path'
         ]
+
+    def get_status(self, obj):
+        """Compute the status of the entity"""
+        status = []
+        if obj.Suspended:
+            status.append('Suspended')
+        if obj.Lapsed:
+            status.append('Lapsed')
+        if obj.is_deleted:
+            status.append('Deleted')
+        if not status:
+            status.append('Active')
+        return ', '.join(status)
+
+    def get_entity_path(self, obj):
+        """Compute the hierarchical path of the entity"""
+        hierarchy = []
+        current = obj
+        while current:
+            hierarchy.insert(0, current.entityName)
+            current = current.entityParentID
+        return ' > '.join(hierarchy)
