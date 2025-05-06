@@ -3,6 +3,7 @@ from .base_serializers import BaseModelSerializer
 from core.models.unit import Unit
 from core.serializers.unit_type_serializers import UnitTypeSerializer
 from core.models.unit_type import UnitType
+from core.models.entity import Entity
 
 
 class UnitSerializer(BaseModelSerializer):
@@ -20,7 +21,7 @@ class UnitSerializer(BaseModelSerializer):
     )
     
     entity = serializers.PrimaryKeyRelatedField(
-        queryset=Unit.objects.all(),
+        queryset=Entity.objects.all(),
         required=False,
         allow_null=True
     )
