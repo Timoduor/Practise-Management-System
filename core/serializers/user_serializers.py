@@ -67,7 +67,7 @@ class UserSerializer(BaseModelSerializer):
             'instance_name',
             'industry',
             'created_at',
-            'updated_at'
+            'updated_at',
             'last_updated_by',
             'created_by',
         ]
