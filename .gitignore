@@ -8,3 +8,5 @@
 **/migrations/*.pyc
 
 !**/migrations/__init__.py
+
+.venv
