@@ -52,8 +52,8 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'hub.apps.HubConfig',
     'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    'django.contrib.auth', # auth system for users, groups, and permissions
+    'django.contrib.contenttypes', # Django content type system that allows permissions to be associated with models created
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',

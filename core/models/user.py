@@ -62,6 +62,12 @@ class User(AbstractUser):
     dob = models.DateField(blank=True, null=True)  # Optional date of birth
     created_at = models.DateTimeField(auto_now_add=True)  # Auto-set on record creation
     last_updated_by = models.ForeignKey("core.User", null=True, blank=True, on_delete=models.DO_NOTHING, related_name='%(class)s_last_updated_by')  # User who last updated
+    created_by = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='created_users'
+    )
 
 
     # Set email as the unique identifier for authentication
