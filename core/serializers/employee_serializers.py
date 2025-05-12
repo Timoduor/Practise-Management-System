@@ -140,7 +140,7 @@ class EmployeeSerializer(BaseModelSerializer):
         
         # Add user's full name for convenience
         if instance.user:
-            data['user_full_name'] = f"{instance.user.firstName} {instance.user.surname}"
+            data['user_full_name'] = f"{instance.user.first_name} {instance.user.last_name}"
         
         # Add hierarchical path
         hierarchy = []
