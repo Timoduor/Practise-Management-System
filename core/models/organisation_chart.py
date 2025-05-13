@@ -1,6 +1,7 @@
 from django.db import models
 from .base import SoftDeleteModel
 from .entity import Entity
+from .organisation_data import OrganisationData
 
 class OrganisationChart(SoftDeleteModel):
     """
@@ -20,7 +21,12 @@ class OrganisationChart(SoftDeleteModel):
     orgChartName = models.CharField(max_length=256)
     
     # Foreign key relationships
-    orgDataID = models.IntegerField()  # Assuming this is a reference to another table
+    orgDataID = models.OneToOneField(
+        OrganisationData,
+        on_delete=models.CASCADE,
+        db_column='orgDataID',
+        related_name='organisation_chart'
+    )
     entityID = models.ForeignKey(
         Entity,
         on_delete=models.CASCADE,

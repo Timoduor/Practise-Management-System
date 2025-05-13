@@ -13,7 +13,6 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
         'positionAssignmentID',
         'position_title_with_level',
         'org_chart_link',
-        'entity_link',
         'positionCode',
         'subordinates_count_display',
         'status_badge',
@@ -22,7 +21,6 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
 
     list_filter = [
         'orgChartID',
-        'entityID',
         'positionLevel',
         'Suspended',
         'Lapsed',
@@ -36,7 +34,6 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
         'positionCode',
         'positionDescription',
         'orgChartID__orgChartName',
-        'entityID__name',  # Assuming entity has a name field
         'LastUpdatedByID__email',
     ]
 
@@ -46,6 +43,8 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
         'LastUpdate',
         'subordinates_count_display',
         'hierarchy_info',
+        'positionCode',
+        'positionLevel',
     ]
 
     fieldsets = (
@@ -61,10 +60,7 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
         ('Relationships', {
             'fields': (
                 'orgChartID',
-                'entityID',
-                'orgDataID',
                 'positionID',
-                'positionTypeID',
                 'positionParentID',
             )
         }),
@@ -113,18 +109,6 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
     org_chart_link.short_description = 'Org Chart'
     org_chart_link.admin_order_field = 'orgChartID__orgChartName'
 
-    def entity_link(self, obj):
-        """Create a clickable link to the entity"""
-        if obj.entityID:
-            return format_html(
-                '<a href="{}">{}</a>',
-                f'/admin/core/entity/{obj.entityID.pk}/change/',
-                str(obj.entityID)
-            )
-        return "-"
-    entity_link.short_description = 'Entity'
-    entity_link.admin_order_field = 'entityID__name'
-
     def subordinates_count_display(self, obj):
         """Display count of subordinate positions"""
         count = obj.subordinates_count
@@ -166,8 +150,6 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """Override save_model to handle user tracking"""
-        if not change:  # New object
-            obj.created_by = request.user
         obj.LastUpdatedByID = request.user
         super().save_model(request, obj, form, change)
 
@@ -176,26 +158,30 @@ class OrganisationChartPositionAssignmentAdmin(BaseModelAdmin):
 
     def suspend_positions(self, request, queryset):
         """Bulk suspend selected positions"""
-        updated = queryset.update(Suspended='Y')
-        self.message_user(request, f'{updated} positions were suspended.')
+        for obj in queryset:
+            obj.suspend()
+        self.message_user(request, f'{queryset.count()} positions were suspended.')
     suspend_positions.short_description = 'Suspend selected positions'
 
     def unsuspend_positions(self, request, queryset):
         """Bulk unsuspend selected positions"""
-        updated = queryset.update(Suspended='N')
-        self.message_user(request, f'{updated} positions were unsuspended.')
+        for obj in queryset:
+            obj.unsuspend()
+        self.message_user(request, f'{queryset.count()} positions were unsuspended.')
     unsuspend_positions.short_description = 'Unsuspend selected positions'
 
     def lapse_positions(self, request, queryset):
         """Bulk lapse selected positions"""
-        updated = queryset.update(Lapsed='Y')
-        self.message_user(request, f'{updated} positions were marked as lapsed.')
+        for obj in queryset:
+            obj.lapse()
+        self.message_user(request, f'{queryset.count()} positions were marked as lapsed.')
     lapse_positions.short_description = 'Mark selected positions as lapsed'
 
     def unlapse_positions(self, request, queryset):
         """Bulk unlapse selected positions"""
-        updated = queryset.update(Lapsed='N')
-        self.message_user(request, f'{updated} positions were unmarked as lapsed.')
+        for obj in queryset:
+            obj.unlapse()
+        self.message_user(request, f'{queryset.count()} positions were unmarked as lapsed.')
     unlapse_positions.short_description = 'Unmark selected positions as lapsed'
 
     class Media:

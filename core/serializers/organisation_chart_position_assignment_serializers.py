@@ -2,7 +2,6 @@ from rest_framework import serializers
 from core.models.organisation_chart_position_assignment import OrganisationChartPositionAssignment
 from .base_serializers import BaseModelSerializer
 from .organisation_chart_serializers import OrganisationChartSimpleSerializer
-from .entity_serializers import EntitySerializer
 
 
 class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
@@ -11,7 +10,7 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
     """
     # Nested relationships
     org_chart_details = OrganisationChartSimpleSerializer(source='orgChartID', read_only=True)
-    entity_details = EntitySerializer(source='entityID', read_only=True)
+    parent_position = serializers.SerializerMethodField()
     
     # Computed fields
     status = serializers.SerializerMethodField()
@@ -26,16 +25,13 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
             'positionAssignmentID',
             'DateAdded',
             'LastUpdate',
-            'orgDataID',
             'orgChartID',
             'org_chart_details',
-            'entityID',
-            'entity_details',
             'positionID',
-            'positionTypeID',
             'positionTitle',
             'positionDescription',
             'positionParentID',
+            'parent_position',
             'positionOrder',
             'positionLevel',
             'positionCode',
@@ -47,18 +43,17 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
             'superior_position',
             'hierarchy_level',
             'has_subordinates',
-            'created_at',
             'updated_at',
-            'created_by',
             'last_updated_by',
         ]
         read_only_fields = [
             'positionAssignmentID',
             'DateAdded',
             'LastUpdate',
-            'created_at',
+            'positionOrder',  # Auto-generated
+            'positionLevel',  # Auto-generated
+            'positionCode',   # Auto-generated
             'updated_at',
-            'created_by',
             'last_updated_by',
         ]
 
@@ -75,7 +70,7 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
         superior = obj.get_superior()
         if superior:
             return {
-                'id': superior.positionID,
+                'id': superior.positionAssignmentID,
                 'title': superior.positionTitle,
                 'level': superior.positionLevel
             }
@@ -88,6 +83,15 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
     def get_has_subordinates(self, obj):
         """Check if position has subordinates"""
         return obj.has_subordinates
+
+    def get_parent_position(self, obj):
+        """Get the parent position details"""
+        if obj.positionParentID:
+            return {
+                'id': obj.positionParentID.positionAssignmentID,
+                'title': obj.positionParentID.positionTitle
+            }
+        return None
 
     def validate_positionTitle(self, value):
         """
@@ -115,7 +119,7 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
     def validate(self, data):
         """
         Validate the complete position assignment data:
-        - Check org chart and entity status
+        - Check org chart status
         - Validate relationships
         - Check position hierarchy
         """
@@ -126,41 +130,16 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
                 'orgChartID': "Cannot create/update position in a suspended org chart."
             })
 
-        # Check if entity is active
-        entity = data.get('entityID')
-        if entity and entity.is_deleted:
+        # Validate parent position is in the same org chart
+        parent = data.get('positionParentID')
+        org_chart_id = data.get('orgChartID')
+        
+        if parent and org_chart_id and parent.orgChartID != org_chart_id:
             raise serializers.ValidationError({
-                'entityID': "Cannot create/update position for an inactive entity."
+                'positionParentID': "Parent position must be in the same org chart."
             })
 
-        # Validate parent position exists if not top level
-        parent_id = data.get('positionParentID')
-        if parent_id and parent_id != 0:
-            try:
-                parent = OrganisationChartPositionAssignment.objects.get(
-                    orgChartID=org_chart,
-                    positionID=parent_id
-                )
-                if parent.Suspended == 'Y':
-                    raise serializers.ValidationError({
-                        'positionParentID': "Cannot assign to a suspended parent position."
-                    })
-            except OrganisationChartPositionAssignment.DoesNotExist:
-                raise serializers.ValidationError({
-                    'positionParentID': "Parent position does not exist."
-                })
-
         return data
-
-    def create(self, validated_data):
-        """Create position with proper user tracking"""
-        request = self.context.get('request')
-        if request and request.user:
-            validated_data['LastUpdatedByID'] = request.user
-            if hasattr(self.Meta.model, 'created_by'):
-                validated_data['created_by'] = request.user
-                
-        return super().create(validated_data)
 
     def update(self, instance, validated_data):
         """Update position with proper user tracking"""
@@ -180,13 +159,21 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
             'count': subordinates.count(),
             'positions': [
                 {
-                    'id': sub.positionID,
+                    'id': sub.positionAssignmentID,
                     'title': sub.positionTitle,
                     'level': sub.positionLevel
                 }
-                for sub in subordinates
+                for sub in subordinates[:5]  # Limit to first 5 for performance
             ] if subordinates.exists() else []
         }
+        
+        # Add entity information via org chart
+        if instance.orgChartID and instance.orgChartID.entityID:
+            entity = instance.orgChartID.entityID
+            data['entity_info'] = {
+                'id': entity.id,
+                'name': entity.entityName if hasattr(entity, 'entityName') else str(entity)
+            }
         
         # Format dates
         if data.get('DateAdded'):

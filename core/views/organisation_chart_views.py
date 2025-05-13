@@ -24,7 +24,7 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
     serializer_class = OrganisationChartSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['entityID', 'Suspended', 'Lapsed']
-    search_fields = ['orgChartName', 'entityID__name']
+    search_fields = ['orgChartName', 'entityID__entityName']
     ordering_fields = ['orgChartName', 'DateAdded', 'LastUpdate']
     ordering = ['-DateAdded']
 
@@ -49,10 +49,7 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new organization chart"""
-        serializer.save(
-            LastUpdatedByID=self.request.user,
-            created_by=self.request.user
-        )
+        serializer.save(LastUpdatedByID=self.request.user)
 
     def perform_update(self, serializer):
         """Update an organization chart"""
@@ -100,15 +97,21 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
         org_chart = self.get_object()
         positions = org_chart.position_assignments.all()
         
+        # Group by position level
+        level_stats = list(positions.values('positionLevel')
+                          .annotate(count=Count('positionLevel'))
+                          .order_by('positionLevel'))
+        
+        # Count top-level positions (those with no parent)
+        top_level_count = positions.filter(positionParentID__isnull=True).count()
+        
         stats = {
             'total_positions': positions.count(),
             'active_positions': positions.filter(Suspended='N', Lapsed='N').count(),
             'suspended_positions': positions.filter(Suspended='Y').count(),
             'lapsed_positions': positions.filter(Lapsed='Y').count(),
-            'hierarchy_levels': positions.values('positionLevel').annotate(
-                count=Count('positionLevel')
-            ),
-            'top_level_positions': positions.filter(positionParentID=0).count(),
+            'hierarchy_levels': level_stats,
+            'top_level_positions': top_level_count,
         }
         
         return Response(stats)
@@ -118,17 +121,25 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
         """Get hierarchical structure of the organization chart"""
         org_chart = self.get_object()
         
-        def build_hierarchy(parent_id=0):
-            positions = org_chart.position_assignments.filter(positionParentID=parent_id)
+        def build_hierarchy(parent=None):
+            # Filter positions that have this parent
+            if parent is None:
+                # Get top-level positions (no parent)
+                positions = org_chart.position_assignments.filter(positionParentID__isnull=True)
+            else:
+                # Get subordinates of this parent
+                positions = parent.subordinates.all()
+            
             return [
                 {
-                    'id': pos.positionID,
+                    'id': pos.positionAssignmentID,
                     'title': pos.positionTitle,
                     'level': pos.positionLevel,
                     'code': pos.positionCode,
-                    'subordinates': build_hierarchy(pos.positionID)
+                    'order': pos.positionOrder,
+                    'subordinates': build_hierarchy(pos)
                 }
-                for pos in positions
+                for pos in positions.order_by('positionOrder', 'positionTitle')
             ]
         
         hierarchy = build_hierarchy()
@@ -149,7 +160,7 @@ class OrganisationChartPositionViewSet(viewsets.ModelViewSet):
     queryset = OrganisationChartPositionAssignment.objects.all()
     serializer_class = OrganisationChartPositionAssignmentSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['orgChartID', 'entityID', 'Suspended', 'Lapsed', 'positionLevel']
+    filterset_fields = ['orgChartID', 'Suspended', 'Lapsed', 'positionLevel']
     search_fields = ['positionTitle', 'positionCode', 'positionDescription']
     ordering_fields = ['positionOrder', 'positionLevel', 'positionTitle', 'DateAdded']
     ordering = ['positionOrder', 'positionLevel', 'positionTitle']
@@ -167,10 +178,7 @@ class OrganisationChartPositionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new position assignment"""
-        serializer.save(
-            LastUpdatedByID=self.request.user,
-            created_by=self.request.user
-        )
+        serializer.save(LastUpdatedByID=self.request.user)
 
     def perform_update(self, serializer):
         """Update a position assignment"""
@@ -190,11 +198,25 @@ class OrganisationChartPositionViewSet(viewsets.ModelViewSet):
         position.unsuspend()
         return Response({'status': 'Position unsuspended'})
 
+    @action(detail=True, methods=['post'])
+    def lapse(self, request, pk=None):
+        """Mark a position as lapsed"""
+        position = self.get_object()
+        position.lapse()
+        return Response({'status': 'Position marked as lapsed'})
+
+    @action(detail=True, methods=['post'])
+    def unlapse(self, request, pk=None):
+        """Remove lapsed status from a position"""
+        position = self.get_object()
+        position.unlapse()
+        return Response({'status': 'Position unmarked as lapsed'})
+
     @action(detail=True)
     def subordinates(self, request, pk=None):
         """Get all subordinate positions"""
         position = self.get_object()
-        subordinates = position.get_subordinates()
+        subordinates = position.subordinates.all()
         serializer = OrganisationChartPositionListSerializer(subordinates, many=True)
         return Response(serializer.data)
 
@@ -202,8 +224,33 @@ class OrganisationChartPositionViewSet(viewsets.ModelViewSet):
     def superior(self, request, pk=None):
         """Get superior position"""
         position = self.get_object()
-        superior = position.get_superior()
+        superior = position.positionParentID  # Direct access to parent via FK
         if superior:
             serializer = OrganisationChartPositionListSerializer(superior)
             return Response(serializer.data)
         return Response({'message': 'No superior position found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def reorder(self, request, pk=None):
+        """Change the order of a position among its siblings"""
+        position = self.get_object()
+        new_order = request.data.get('order')
+        
+        if new_order is not None:
+            try:
+                # Update order
+                position.positionOrder = int(new_order)
+                position.save()
+                return Response({
+                    'status': 'Position reordered successfully', 
+                    'new_order': position.positionOrder
+                })
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid order value'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(
+            {'error': 'Order value required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )

@@ -23,7 +23,6 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     
     filterset_fields = {
         'orgChartID': ['exact'],
-        'entityID': ['exact'],
         'positionLevel': ['exact', 'in'],
         'Suspended': ['exact'],
         'Lapsed': ['exact'],
@@ -37,7 +36,6 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
         'positionCode',
         'positionDescription',
         'orgChartID__orgChartName',
-        'entityID__name',
     ]
     
     ordering_fields = [
@@ -53,7 +51,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Get the list of items for this view.
-        Implements filtering by org chart, entity, and status
+        Implements filtering by org chart and status
         """
         queryset = super().get_queryset()
         
@@ -62,10 +60,10 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
         if org_chart_id:
             queryset = queryset.filter(orgChartID=org_chart_id)
             
-        # Filter by entity
+        # Filter by entity (through org chart)
         entity_id = self.request.query_params.get('entity', None)
         if entity_id:
-            queryset = queryset.filter(entityID=entity_id)
+            queryset = queryset.filter(orgChartID__entityID=entity_id)
             
         # Filter by active status
         active_only = self.request.query_params.get('active_only', False)
@@ -89,10 +87,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new position assignment with user tracking"""
-        serializer.save(
-            LastUpdatedByID=self.request.user,
-            created_by=self.request.user
-        )
+        serializer.save(LastUpdatedByID=self.request.user)
 
     def perform_update(self, serializer):
         """Update a position assignment with user tracking"""
@@ -142,7 +137,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     def subordinates(self, request, pk=None):
         """Get all subordinate positions"""
         position = self.get_object()
-        subordinates = position.get_subordinates()
+        subordinates = position.subordinates.all()  # Use the related_name from the FK
         
         # Include recursive subordinates if requested
         recursive = request.query_params.get('recursive', False)
@@ -151,7 +146,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
                 result = []
                 for pos in positions:
                     result.append(pos)
-                    result.extend(get_recursive_subordinates(pos.get_subordinates()))
+                    result.extend(get_recursive_subordinates(pos.subordinates.all()))
                 return result
                 
             subordinates = get_recursive_subordinates(subordinates)
@@ -163,7 +158,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     def superior(self, request, pk=None):
         """Get superior position"""
         position = self.get_object()
-        superior = position.get_superior()
+        superior = position.positionParentID  # Direct access via FK
         
         if superior:
             serializer = OrganisationChartPositionAssignmentSerializer(superior)
@@ -182,7 +177,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
         # Build chain up to top level
         while current:
             chain.append(current)
-            current = current.get_superior()
+            current = current.positionParentID  # Direct access via FK
             
         serializer = OrganisationChartPositionListSerializer(chain, many=True)
         return Response(serializer.data)
@@ -200,7 +195,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
             'by_level': queryset.values('positionLevel').annotate(
                 count=Count('positionLevel')
             ).order_by('positionLevel'),
-            'top_level_positions': queryset.filter(positionParentID=0).count(),
+            'top_level_positions': queryset.filter(positionParentID__isnull=True).count(),  # Changed to check null
         }
         
         return Response(stats)
@@ -224,9 +219,9 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(positionLevel=level)
         if has_subordinates is not None:
             if has_subordinates.lower() == 'true':
-                queryset = queryset.filter(position_assignments__isnull=False).distinct()
+                queryset = queryset.filter(subordinates__isnull=False).distinct()  # Updated related_name
             else:
-                queryset = queryset.filter(position_assignments__isnull=True)
+                queryset = queryset.filter(subordinates__isnull=True)  # Updated related_name
                 
         serializer = OrganisationChartPositionListSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -237,3 +232,29 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         serializer = OrganisationChartPositionSimpleSerializer(queryset, many=True)
         return Response(serializer.data)
+        
+    @action(detail=True, methods=['post'])
+    def reorder(self, request, pk=None):
+        """Change the order of a position among its siblings"""
+        position = self.get_object()
+        new_order = request.data.get('order')
+        
+        if new_order is not None:
+            try:
+                # Update order
+                position.positionOrder = int(new_order)
+                position.save()
+                return Response({
+                    'status': 'success',
+                    'message': 'Position order updated successfully',
+                    'new_order': position.positionOrder
+                })
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid order value'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(
+            {'error': 'Order value required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )

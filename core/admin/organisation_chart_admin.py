@@ -12,6 +12,7 @@ class OrganisationChartAdmin(BaseModelAdmin):
         'orgChartID',
         'orgChartName',
         'entity_link',
+        'org_data_link',
         'DateAdded',
         'LastUpdate',
         'updated_by',
@@ -29,7 +30,8 @@ class OrganisationChartAdmin(BaseModelAdmin):
     search_fields = [
         'orgChartID',
         'orgChartName',
-        'entityID__name',  # Assuming entity has a name field
+        'entityID__entityName',  # Assuming entity has an entityName field
+        'orgDataID__orgName',       # Assuming OrganisationData has a name field
         'LastUpdatedByID__email',  # Search by user email
     ]
 
@@ -37,8 +39,6 @@ class OrganisationChartAdmin(BaseModelAdmin):
         'orgChartID',
         'DateAdded',
         'LastUpdate',
-        'created_by',
-        'last_updated_by',
     ]
 
     fieldsets = (
@@ -76,7 +76,19 @@ class OrganisationChartAdmin(BaseModelAdmin):
             )
         return "-"
     entity_link.short_description = 'Entity'
-    entity_link.admin_order_field = 'entityID__name'
+    entity_link.admin_order_field = 'entityID__entityName'
+
+    def org_data_link(self, obj):
+        """Create a clickable link to the organization data"""
+        if obj.orgDataID:
+            return format_html(
+                '<a href="{}">{}</a>',
+                f'/admin/core/organisationdata/{obj.orgDataID.pk}/change/',
+                str(obj.orgDataID)
+            )
+        return "-"
+    org_data_link.short_description = 'Organization Data'
+    org_data_link.admin_order_field = 'orgDataID__name'
 
     def updated_by(self, obj):
         """Display user who last updated the record"""
@@ -108,8 +120,6 @@ class OrganisationChartAdmin(BaseModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """Override save_model to handle user tracking"""
-        if not change:  # New object
-            obj.created_by = request.user
         obj.LastUpdatedByID = request.user
         super().save_model(request, obj, form, change)
 
@@ -118,26 +128,30 @@ class OrganisationChartAdmin(BaseModelAdmin):
 
     def suspend_charts(self, request, queryset):
         """Bulk suspend selected charts"""
-        updated = queryset.update(Suspended='Y')
-        self.message_user(request, f'{updated} charts were suspended.')
+        for obj in queryset:
+            obj.suspend()
+        self.message_user(request, f'{queryset.count()} charts were suspended.')
     suspend_charts.short_description = 'Suspend selected charts'
 
     def unsuspend_charts(self, request, queryset):
         """Bulk unsuspend selected charts"""
-        updated = queryset.update(Suspended='N')
-        self.message_user(request, f'{updated} charts were unsuspended.')
+        for obj in queryset:
+            obj.unsuspend()
+        self.message_user(request, f'{queryset.count()} charts were unsuspended.')
     unsuspend_charts.short_description = 'Unsuspend selected charts'
 
     def lapse_charts(self, request, queryset):
         """Bulk lapse selected charts"""
-        updated = queryset.update(Lapsed='Y')
-        self.message_user(request, f'{updated} charts were marked as lapsed.')
+        for obj in queryset:
+            obj.lapse()
+        self.message_user(request, f'{queryset.count()} charts were marked as lapsed.')
     lapse_charts.short_description = 'Mark selected charts as lapsed'
 
     def unlapse_charts(self, request, queryset):
         """Bulk unlapse selected charts"""
-        updated = queryset.update(Lapsed='N')
-        self.message_user(request, f'{updated} charts were unmarked as lapsed.')
+        for obj in queryset:
+            obj.unlapse()
+        self.message_user(request, f'{queryset.count()} charts were unmarked as lapsed.')
     unlapse_charts.short_description = 'Unmark selected charts as lapsed'
 
     class Media:

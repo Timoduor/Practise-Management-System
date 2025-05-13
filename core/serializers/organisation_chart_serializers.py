@@ -1,7 +1,22 @@
 from rest_framework import serializers
 from core.models.organisation_chart import OrganisationChart
+from core.models.organisation_data import OrganisationData
 from .base_serializers import BaseModelSerializer
 from .entity_serializers import EntitySerializer
+
+
+class OrganisationDataSerializer(serializers.ModelSerializer):
+    """
+    Serializer for OrganisationData model
+    """
+    class Meta:
+        model = OrganisationData
+        fields = [
+            'orgDataID',
+            'name',
+            'description',
+            # Include other relevant fields from your OrganisationData model
+        ]
 
 
 class OrganisationChartSerializer(BaseModelSerializer):
@@ -10,6 +25,7 @@ class OrganisationChartSerializer(BaseModelSerializer):
     """
     # Nested relationships
     entity_details = EntitySerializer(source='entityID', read_only=True)
+    org_data_details = OrganisationDataSerializer(source='orgDataID', read_only=True)
     
     # Computed fields
     status = serializers.SerializerMethodField()
@@ -22,6 +38,7 @@ class OrganisationChartSerializer(BaseModelSerializer):
             'DateAdded',
             'orgChartName',
             'orgDataID',
+            'org_data_details',
             'entityID',
             'entity_details',
             'LastUpdate',
@@ -141,6 +158,8 @@ class OrganisationChartListSerializer(OrganisationChartSerializer):
             'orgChartName',
             'entityID',
             'entity_details',
+            'orgDataID',
+            'org_data_details',
             'status',
             'positions_count',
             'LastUpdate',
