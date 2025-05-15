@@ -46,7 +46,7 @@ class UnitViewSet(viewsets.ModelViewSet):
         - Instance admin: units in their instance
         - Entity admin: units associated with their entity
         - Unit admin: their unit only
-        - Regular users: units they belong to
+        - Regular users: units they're assigned to via employee record
         """
         user = self.request.user
 
@@ -62,14 +62,32 @@ class UnitViewSet(viewsets.ModelViewSet):
             elif admin_type_name == "INS":
                 # Instance admin - return units in their instance
                 instance = jurisdiction
-                return Unit.objects.filter(instance=instance)
+                # Get all units from entities in this instance
+                return Unit.objects.filter(entity__instance=instance)
             elif admin_type_name == "ENT":
                 # Entity admin - return units associated with their entity
                 entity = jurisdiction
-                return Unit.objects.filter(entities=entity)
+                return Unit.objects.filter(entity=entity)  # Correct field name is 'entity', not 'entities'
             elif admin_type_name == "UNI":
                 # Unit admin - return only their unit
                 return Unit.objects.filter(id=jurisdiction.id)
         
-        # Regular users - return units they belong to
-        return Unit.objects.filter(members=user)
+        # Regular users - return units they belong to via their employee record
+        try:
+            # Check if user has an employee record
+            if hasattr(user, 'employee_user'):
+                employee = user.employee_user
+                
+                if employee.unit:
+                    # If assigned to a specific unit, return just that unit
+                    return Unit.objects.filter(id=employee.unit.id)
+                elif employee.entity:
+                    # If not assigned to a unit but assigned to an entity, 
+                    # return all units in that entity
+                    return Unit.objects.filter(entity=employee.entity)
+        except Exception as e:
+            # Handle any errors gracefully
+            pass
+            
+        # If no relationship found or error occurred, return empty queryset
+        return Unit.objects.none()
