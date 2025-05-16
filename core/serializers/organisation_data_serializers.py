@@ -116,11 +116,21 @@ class OrganisationDataSerializer(BaseModelSerializer):
         return super().update(instance, validated_data)
 
     def create(self, validated_data):
-        """Create with user tracking"""
-        request = self.context.get('request')
-        if request and request.user:
-            validated_data['LastUpdatedByID'] = request.user
-        return super().create(validated_data)
+        """
+        Override create method to handle field conversions and user tracking
+        """
+        # Remove fields that don't exist in the model
+        created_by = validated_data.pop('created_by', None)
+        last_updated_by = validated_data.pop('last_updated_by', None)
+        
+        # Set the correct field name for user tracking
+        if last_updated_by:
+            validated_data['LastUpdatedByID'] = last_updated_by
+        
+        # Create the organisation data instance
+        instance = OrganisationData.objects.create(**validated_data)
+        
+        return instance
 
     def suspend(self, obj):
         """Suspend organisation"""
