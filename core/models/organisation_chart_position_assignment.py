@@ -185,23 +185,32 @@ class OrganisationChartPositionAssignment(SoftDeleteModel):
                 'positionParentID': 'Parent position must be in the same organization chart.'
             })
         
-        # Check for circular references
-        if self._check_circular_reference():
-            raise ValidationError({
-                'positionParentID': 'Circular reference detected in position hierarchy.'
-            })
+        # Only check for circular references if this is an existing object
+        if self.positionAssignmentID is not None:
+            # Check for circular references
+            if self._check_circular_reference():
+                raise ValidationError({
+                    'positionParentID': 'Circular reference detected in position hierarchy.'
+                })
         
-    def _check_circular_reference(self):
-        """Check if there's a circular reference in the position hierarchy"""
-        if not self.positionParentID:
+    def _check_circular_reference(self, parent_id=None):
+        """Check if there's a circular reference in the hierarchy"""
+        # Don't check for circular references on new objects - they can't create cycles yet
+        if self.positionAssignmentID is None:
             return False
-            
-        # Get all ancestors to check for circularity
-        visited = set()
-        current = self.positionParentID
-        while current:
-            if current.id in visited:
-                return True  # Circular reference found
-            visited.add(current.id)
-            current = current.positionParentID
-        return False
+        
+        if parent_id is None:
+            if self.positionParentID is None:
+                return False  # No parent, no circular reference
+            parent_id = self.positionParentID.positionAssignmentID
+        
+        # If this object's ID matches the parent ID, we have a circular reference
+        if self.positionAssignmentID == parent_id:
+            return True
+        
+        # If this object's parent is None, we've reached the top without finding a cycle
+        if self.positionParentID is None:
+            return False
+        
+        # Check the parent's parent recursively
+        return self.positionParentID._check_circular_reference(parent_id)
