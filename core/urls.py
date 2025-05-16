@@ -10,6 +10,7 @@ from core.views.unit_type_views import UnitTypeViewSet
 from core.views.admin_type_views import AdminTypeViewSet
 from core.views.organisation_chart_views import OrganisationChartViewSet
 from core.views.organisation_chart_position_assignments_views import OrganisationChartPositionAssignmentViewSet
+from core.views.organisation_data_views import OrganisationDataViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename="user")
@@ -23,5 +24,6 @@ router.register(r"unit-types", UnitTypeViewSet, basename="unit_type")
 router.register(r"admin-types", AdminTypeViewSet, basename="admin_type")
 router.register('organisation-positions', OrganisationChartPositionAssignmentViewSet,basename='organisation_position')
 router.register('organisation-charts', OrganisationChartViewSet,basename='organisation_chart')
+router.register(r"organisation-data", OrganisationDataViewSet, basename="organisation_data")
 
 urlpatterns = router.urls

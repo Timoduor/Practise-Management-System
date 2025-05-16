@@ -9,10 +9,11 @@ from .entity_type_views import EntityTypeViewSet
 from .unit_type_views import UnitTypeViewSet
 from .organisation_chart_views import OrganisationChartViewSet
 from .organisation_chart_position_assignments_views import OrganisationChartPositionAssignmentViewSet
+from .organisation_data_views import OrganisationDataViewSet
 
 
 __all__ = ["EntityViewSet","InstanceViewSet" ,
            "CustomTokenObtainPairView", "UnitViewSet",
              "UserViewSet","AdminViewSet" ,"EmployeeViewSet",
              "CustomTokenRefreshView", "CustomTokenVerifyView", "EntityTypeViewSet", "UnitTypeViewSet",
-             "OrganisationChartViewSet", "OrganisationChartPositionAssignmentViewSet"]
+             "OrganisationChartViewSet", "OrganisationChartPositionAssignmentViewSet", "OrganisationDataViewSet"]

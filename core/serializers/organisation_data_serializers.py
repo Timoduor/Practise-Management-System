@@ -64,8 +64,8 @@ class OrganisationDataSerializer(BaseModelSerializer):
         """Get instance details"""
         if obj.instanceID:
             return {
-                'id': obj.instanceID.id,
-                'name': str(obj.instanceID)
+                'id': obj.instanceID.instanceID,
+                'name': str(obj.instanceID),
             }
         return None
 
@@ -73,7 +73,7 @@ class OrganisationDataSerializer(BaseModelSerializer):
         """Get industry sector details"""
         if obj.industrySectorID:
             return {
-                'id': obj.industrySectorID.id,
+                'id': obj.industrySectorID.industrySectorID,
                 'name': str(obj.industrySectorID)
             }
         return None
