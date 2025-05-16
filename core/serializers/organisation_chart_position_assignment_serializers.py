@@ -171,7 +171,7 @@ class OrganisationChartPositionAssignmentSerializer(BaseModelSerializer):
         if instance.orgChartID and instance.orgChartID.entityID:
             entity = instance.orgChartID.entityID
             data['entity_info'] = {
-                'id': entity.id,
+                'id': entity.entityID,
                 'name': entity.entityName if hasattr(entity, 'entityName') else str(entity)
             }
         
