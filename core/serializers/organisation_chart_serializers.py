@@ -13,8 +13,8 @@ class OrganisationDataSerializer(serializers.ModelSerializer):
         model = OrganisationData
         fields = [
             'orgDataID',
-            'name',
-            'description',
+            'orgName',
+            'orgLogo',
             # Include other relevant fields from your OrganisationData model
         ]
 

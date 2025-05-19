@@ -225,13 +225,14 @@ class OrganisationDataViewSet(viewsets.ModelViewSet):
         org_data = self.get_object()
         
         # Get related entities through organisation charts
-        related_charts = org_data.organisation_chart.all() if hasattr(org_data, 'organisation_chart') else []
+        related_charts = getattr(org_data, 'organisation_chart', None)
+        related_charts = [related_charts] if related_charts else []
         
         entities = []
         for chart in related_charts:
             entity = chart.entityID
             entities.append({
-                'id': entity.id,
+                'id': entity.entityID,
                 'name': entity.entityName if hasattr(entity, 'entityName') else str(entity),
                 'chart_id': chart.orgChartID,
                 'chart_name': chart.orgChartName,
