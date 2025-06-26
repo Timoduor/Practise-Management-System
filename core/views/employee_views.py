@@ -8,11 +8,23 @@ from core.serializers.employee_serializers import EmployeeSerializer
 from rest_framework import viewsets, status
 from django.db import models
 from rest_framework.response import Response
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.utils.permissions import get_organisation_id_from_request
+from core.models.organisation_role import OrganisationRole
+from rest_framework.permissions import IsAuthenticated
+
 
 # Define a viewset for managing Employee objects
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -86,3 +98,5 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         for child in child_entities:
             entities.extend(self.get_all_entities(child))
         return entities
+
+   

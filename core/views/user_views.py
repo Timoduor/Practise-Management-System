@@ -6,8 +6,12 @@ from core.models.instance import Instance
 from core.models.entity import Entity
 from core.models.unit import Unit
 from django.contrib.contenttypes.models import ContentType
-from core.serializers.user_serializers import UserSerializer
+from core.serializers.user_serializers import UserSerializer, UserSimpleSerializer
 from django.db import models
+from rest_framework.permissions import IsAuthenticated
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -17,7 +21,13 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -104,3 +114,25 @@ class UserViewSet(viewsets.ModelViewSet):
         for child in child_entities:
             entities.extend(self.get_all_entities(child))
         return entities
+
+   
+class UserDropdownViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.filter(is_active=True)
+    serializer_class = UserSimpleSerializer
+    permission_classes = [IsAuthenticated]   
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Get the organisation(s) this user belongs to via OrganisationRole
+        org_ids = OrganisationRole.objects.filter(
+            user=user, is_active=True
+        ).values_list('organisation_id', flat=True)
+
+        # Return active users who are in the same organisation(s)
+        return User.objects.filter(
+            is_active=True,
+            organisation_roles__organisation_id__in=org_ids
+        ).distinct()
+    
+    

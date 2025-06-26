@@ -10,6 +10,9 @@ from core.serializers.organisation_chart_position_assignment_serializers import 
     OrganisationChartPositionListSerializer,
     OrganisationChartPositionSimpleSerializer
 )
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 
 class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
@@ -19,7 +22,7 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganisationChartPositionAssignment.objects.all()
     serializer_class = OrganisationChartPositionAssignmentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
     
     filterset_fields = {
         'orgChartID': ['exact'],
@@ -47,6 +50,12 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
     ]
     
     ordering = ['positionOrder', 'positionLevel', 'positionTitle']
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def get_queryset(self):
         """
@@ -258,3 +267,4 @@ class OrganisationChartPositionAssignmentViewSet(viewsets.ModelViewSet):
             {'error': 'Order value required'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+   

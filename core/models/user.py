@@ -95,3 +95,5 @@ class User(AbstractUser):
         # Reactivate a soft-deleted user
         self.is_active = True
         self.save()
+
+

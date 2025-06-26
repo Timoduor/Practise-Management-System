@@ -20,7 +20,7 @@ class ProjectSerializer(SoftDeleteBaseSerializer):
         model = Project
         fields = [
             'project_id', 'project_name', 'customer', 'project_description', 
-            'start_date', 'end_date', 'entity', 'unit', 'is_deleted', 'project_value',
+            'start_date', 'end_date', 'instance', 'entity', 'unit', 'is_deleted', 'project_value',
             'created_at', 'updated_at', 'project_manager','members', 'member_ids', 'phases'
         ] + SoftDeleteBaseSerializer.Meta.fields
 

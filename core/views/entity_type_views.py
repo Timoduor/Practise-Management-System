@@ -2,11 +2,23 @@ from rest_framework import viewsets, status
 from core.models.entity_type import EntityType
 from core.serializers.entity_type_serializers import EntityTypeSerializer
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 # Define a viewset for managing EntityType objects
 class EntityTypeViewSet(viewsets.ModelViewSet):
     queryset = EntityType.objects.all()
     serializer_class = EntityTypeSerializer
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+ 
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -48,3 +60,5 @@ class EntityTypeViewSet(viewsets.ModelViewSet):
         else:
             # Non-staff users cannot view entity types
             return EntityType.objects.none()
+        
+   

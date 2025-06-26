@@ -14,6 +14,9 @@ from core.serializers.organisation_chart_position_assignment_serializers import 
     OrganisationChartPositionAssignmentSerializer,
     OrganisationChartPositionListSerializer
 )
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 
 class OrganisationChartViewSet(viewsets.ModelViewSet):
@@ -22,11 +25,17 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganisationChart.objects.all()
     serializer_class = OrganisationChartSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
     filterset_fields = ['entityID', 'Suspended', 'Lapsed']
     search_fields = ['orgChartName', 'entityID__entityName']
     ordering_fields = ['orgChartName', 'DateAdded', 'LastUpdate']
     ordering = ['-DateAdded']
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+ 
 
     def get_serializer_class(self):
         """Return appropriate serializer class"""
@@ -152,6 +161,8 @@ class OrganisationChartViewSet(viewsets.ModelViewSet):
         serializer = OrganisationChartSimpleSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    
+    
 
 class OrganisationChartPositionViewSet(viewsets.ModelViewSet):
     """

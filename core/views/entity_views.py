@@ -7,6 +7,9 @@ from django.contrib.contenttypes.models import ContentType
 from core.serializers.entity_serializers import EntitySerializer
 from core.permissions import ReadOnlyUnlessSuperadmin
 from rest_framework.response import Response
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 class EntityViewSet(viewsets.ModelViewSet):
     """
@@ -16,7 +19,13 @@ class EntityViewSet(viewsets.ModelViewSet):
     """
     queryset = Entity.objects.all()
     serializer_class = EntitySerializer
-    permission_classes = [IsAuthenticated, ReadOnlyUnlessSuperadmin]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -91,3 +100,5 @@ class EntityViewSet(viewsets.ModelViewSet):
         for child in child_entities:
             entities.extend(self.get_all_entities(child))
         return entities
+
+    

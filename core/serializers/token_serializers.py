@@ -4,6 +4,7 @@ from core.models.user import User
 from django.contrib.auth import authenticate
 
 
+
 # Custom TokenObtainPairSerializer to add custom claims in JWT tokens
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

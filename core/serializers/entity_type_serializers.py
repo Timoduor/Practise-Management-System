@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .base_serializers import BaseModelSerializer
 from core.models.entity_type import EntityType
 from .user_serializers import UserSerializer
+from core.models.organisation_role import OrganisationRole
+from core.permissions.base_permissions import ROLE_HIERARCHY
 
 class EntityTypeSerializer(BaseModelSerializer):
     """
@@ -96,6 +98,48 @@ class EntityTypeSerializer(BaseModelSerializer):
             data['status'].append('Active')
 
         return data
+    
+    
+    
+    def get_fields(self):
+        fields = super().get_fields()  # Get all default fields from the serializer
+        request = self.context.get('request')  # Get the request object passed into the serializer
+        user = getattr(request, 'user', None)  # Get the user making the request
+
+        if not user or not user.is_authenticated:
+            hide_fields = True  # If no user or user is anonymous, hide sensitive fields
+        elif user.is_superuser:
+            hide_fields = False  # Django superusers see everything
+        else:
+            # Get organisation ID from request or object (fall back based on how you're accessing it)
+            org_id = (
+                request.data.get('organisation') or
+                request.query_params.get('organisation') or
+                getattr(getattr(self.instance, 'organisation', None), 'id', None)
+            )
+
+            if not org_id:
+                hide_fields = True  # If we don't know which organisation, hide
+            else:
+                # Get user's roles in that organisation
+                user_roles = OrganisationRole.objects.filter(
+                    user=user,
+                    organisation_id=org_id,
+                    is_active=True
+                ).values_list('role', flat=True)
+
+                # Check if user has ORGADMIN or higher access
+                hide_fields = all(
+                    ROLE_HIERARCHY.get(role, -1) < ROLE_HIERARCHY['ORGADMIN']
+                    for role in user_roles
+                )
+
+        # Hide sensitive fields if the user is not authorised
+        if hide_fields:
+            for field_name in ['LastUpdatedByID', 'DateAdded', 'LastUpdate']:
+                fields.pop(field_name, None)
+
+        return fields
 
 class EntityTypeListSerializer(EntityTypeSerializer):
     """Simplified serializer for list views"""

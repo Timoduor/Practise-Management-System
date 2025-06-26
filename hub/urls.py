@@ -18,6 +18,9 @@ from hub.views.task_type_view import TaskTypeViewSet
 from hub.views.task_status_view import TaskStatusViewSet
 from hub.views.sales_status_view import SalesStatusViewSet
 from hub.views.timesheet_view import TimesheetView
+from hub.views.contact_view import get_user_details
+from hub.views.customer_view import get_organisation_details 
+
 
 
 router = DefaultRouter()
@@ -43,4 +46,7 @@ urlpatterns = router.urls
 
 urlpatterns += [
     path('dashboard/timesheets/', TimesheetView.as_view(), name="timesheet-dashboard"),
+    path('admin/get-user-details/<int:user_id>/', get_user_details, name='get_user_details'),
+    path('admin/get-organisation-details/<int:org_id>/', get_organisation_details, name='get_organisation_details'),
 ]
+

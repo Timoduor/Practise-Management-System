@@ -11,7 +11,7 @@ from hub.models.sales import Sales
 from hub.models.sales_task import SalesTask
 
 
-class WorkEntries(SoftDeleteModel):
+class WorkEntries(SoftDeleteModel):  
     work_entries_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()

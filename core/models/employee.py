@@ -7,3 +7,7 @@ class Employee(SoftDeleteModel):
     instance = models.ForeignKey("Instance", on_delete=models.CASCADE)  # Related instance
     entity = models.ForeignKey("Entity", on_delete=models.CASCADE, blank=True, null=True)  # Related entity
     unit = models.ForeignKey("Unit", on_delete=models.SET_NULL, blank=True, null=True)  # Optional unit
+    
+    
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}"  # Or `self.user.username` or `self.user.email`

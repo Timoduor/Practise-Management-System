@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 
 class OrganisationData(models.Model):
+    orgDocument = models.FileField(upload_to='organisation_documents/', null=True, blank=True)
     COST_CENTER_CHOICES = [
         ('ENABLED', 'Enabled'),
         ('DISABLED', 'Disabled'),
@@ -51,3 +52,12 @@ class OrganisationData(models.Model):
 
     def __str__(self):
         return self.orgName
+    
+
+class UploadedFile(models.Model):
+    organisation = models.ForeignKey('OrganisationData', on_delete=models.CASCADE, related_name='uploaded_files')
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.organisation.orgName} - {self.file.name}"

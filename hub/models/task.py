@@ -22,3 +22,4 @@ class Task(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.task_name} in {self.phase.phase_name}"
+    

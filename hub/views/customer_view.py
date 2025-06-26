@@ -12,6 +12,8 @@ from hub.models.expense import Expense
 
 from hub.serializers.customer_serializer import CustomerSerializer
 from .common_viewset import CommonViewSet
+from django.http import JsonResponse
+from core.models.organisation_data import OrganisationData
 
 
 class CustomerViewSet(CommonViewSet):
@@ -95,3 +97,18 @@ class CustomerViewSet(CommonViewSet):
                 "total_expenses": total_expenses,
             },
         })
+    
+
+
+def get_organisation_details(request, org_id):
+    try:
+        org = OrganisationData.objects.get(pk=org_id)
+        return JsonResponse({
+            "name": org.orgName,
+            "email": getattr(org, "email", ""),
+            "phone": getattr(org, "phone", ""),
+            "address": getattr(org, "address", ""),
+        })
+    except OrganisationData.DoesNotExist:
+        return JsonResponse({"error": "Organisation not found"}, status=404)
+

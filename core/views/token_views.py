@@ -11,6 +11,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     """View for obtaining JWT token pair (access and refresh tokens)"""
     serializer_class = CustomTokenObtainPairSerializer
 
+    def get_serializer_context(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return {}
+        return super().get_serializer_context()
+
     def post(self, request: Request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         data = response.data
@@ -39,6 +44,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class CustomTokenRefreshView(TokenRefreshView):
     """View for refreshing expired access tokens using refresh token"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def get_serializer_context(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return {}
+        return super().get_serializer_context()
 
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get('refresh_token')
@@ -70,6 +81,12 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 class CustomTokenVerifyView(TokenVerifyView):
     """View for verifying access tokens"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def get_serializer_context(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return {}
+        return super().get_serializer_context()
 
     def post(self, request, *args, **kwargs):
         access_token = request.COOKIES.get("access_token")

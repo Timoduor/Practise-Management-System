@@ -9,8 +9,15 @@ from core.models.organisation_data import OrganisationData
 from core.serializers.organisation_data_serializers import (
     OrganisationDataSerializer,
     OrganisationDataListSerializer,
-    OrganisationDataSimpleSerializer
+    OrganisationDataSimpleSerializer,
 )
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
+from rest_framework.parsers import MultiPartParser, FormParser
+from core.models.organisation_data import UploadedFile
+
+
 
 
 class OrganisationDataViewSet(viewsets.ModelViewSet):
@@ -21,8 +28,10 @@ class OrganisationDataViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganisationData.objects.all()
     serializer_class = OrganisationDataSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    parser_classes = [MultiPartParser, FormParser]
+
     
     filterset_fields = {
         'instanceID': ['exact'],
@@ -54,6 +63,13 @@ class OrganisationDataViewSet(viewsets.ModelViewSet):
     ]
     
     ordering = ['-DateAdded']
+
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def get_serializer_class(self):
         """Return appropriate serializer class based on the action"""
@@ -110,11 +126,18 @@ class OrganisationDataViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new organisation data record with user tracking"""
-        serializer.save(LastUpdatedByID=self.request.user)
+        organisation = serializer.save(LastUpdatedByID=self.request.user)
+        self._handle_uploaded_files(organisation)
 
     def perform_update(self, serializer):
         """Update an organisation data record with user tracking"""
-        serializer.save(LastUpdatedByID=self.request.user)
+        organisation = serializer.save(LastUpdatedByID=self.request.user)
+        self._handle_uploaded_files(organisation)
+
+    def _handle_uploaded_files(self, organisation):
+        files = self.request.FILES.getlist('uploaded_files')
+        for f in files:
+            UploadedFile.objects.create(organisation=organisation, file=f)    
 
     @action(detail=True, methods=['post'])
     def suspend(self, request, pk=None):
@@ -257,3 +280,6 @@ class OrganisationDataViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         return Response({'message': 'No organisation chart found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    
+   

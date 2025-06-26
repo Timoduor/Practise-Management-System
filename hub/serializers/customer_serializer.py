@@ -32,4 +32,5 @@ class CustomerSerializer(SoftDeleteBaseSerializer):
                 })
         
         return data
+    
 

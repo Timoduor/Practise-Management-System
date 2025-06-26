@@ -2,11 +2,22 @@ from rest_framework import viewsets, status
 from core.models.unit_type import UnitType
 from core.serializers.unit_type_serializers import UnitTypeSerializer
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
 
 # Define a viewset for managing UnitType objects
 class UnitTypeViewSet(viewsets.ModelViewSet):
     queryset = UnitType.objects.all()
     serializer_class = UnitTypeSerializer
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -48,3 +59,6 @@ class UnitTypeViewSet(viewsets.ModelViewSet):
         else:
             # Non-staff users cannot view unit types
             return UnitType.objects.none()
+        
+
+   

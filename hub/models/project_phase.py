@@ -19,4 +19,5 @@ class ProjectPhase(SoftDeleteModel):
 
     def __str__(self):
         return f"Phase: {self.phase_name} of {self.project.project_name}"
+    
 

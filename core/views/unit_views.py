@@ -4,6 +4,10 @@ from core.models.unit import Unit
 from core.serializers.unit_serializers import UnitSerializer
 from core.permissions import ReadOnlyUnlessSuperadmin
 from rest_framework.response import Response
+from core.permissions.hierachial_permissions import HierarchicalOrgPermission
+from core.models.organisation_role import OrganisationRole
+from core.utils.permissions import get_organisation_id_from_request
+
 
 class UnitViewSet(viewsets.ModelViewSet):
     """
@@ -13,7 +17,13 @@ class UnitViewSet(viewsets.ModelViewSet):
     """
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
-    permission_classes = [IsAuthenticated, ReadOnlyUnlessSuperadmin]
+    permission_classes = [IsAuthenticated, HierarchicalOrgPermission]
+
+    def get_object(self):
+        obj = super().get_object()
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -91,3 +101,5 @@ class UnitViewSet(viewsets.ModelViewSet):
             
         # If no relationship found or error occurred, return empty queryset
         return Unit.objects.none()
+
+   

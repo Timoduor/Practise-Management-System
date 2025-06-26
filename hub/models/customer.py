@@ -2,6 +2,8 @@ from django.db import models
 from core.models.base import SoftDeleteModel
 from core.models.entity import Entity
 from core.models.unit import Unit
+from core.models.instance import Instance
+from core.models.organisation_data import OrganisationData
 
 
 class Customer(SoftDeleteModel):
@@ -11,6 +13,8 @@ class Customer(SoftDeleteModel):
     customer_phone = models.CharField(max_length=20, blank=True, null=True)
     customer_address = models.TextField(blank=True, null=True)
 
+    organisation = models.ForeignKey(OrganisationData, on_delete=models.SET_NULL, blank=True, null=True)
+    instance = models.ForeignKey(Instance, on_delete=models.SET_NULL, blank=True, null=True)
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, blank=True, null=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, blank=True, null=True)
 
