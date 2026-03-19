@@ -1,0 +1,10 @@
+*.sqlite3
+
+*.pyc
+
+/tija/settings_local.py
+
+
+**/migrations/*.pyc
+
+!**/migrations/__init__.py

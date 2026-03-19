@@ -1,0 +1,113 @@
+from datetime import datetime, timedelta
+from django.test import TestCase
+from django.core.exceptions import ValidationError
+from hub.models.absence import Absence
+from hub.models.project import Project
+from hub.models.sales import Sales
+from hub.models.leave_type import LeaveType
+from hub.models.customer import Customer
+from core.models.user import User
+
+class AbsenceModelTest(TestCase):
+    def setUp(self):
+        # Create the necessary user, customer, project, and sale objects
+        self.user = User.objects.create_user(email="user@example.com", password="password123")
+        self.customer = Customer.objects.create(
+            customer_name="Test Customer",
+            customer_email="customer@example.com"
+        )
+        self.project = Project.objects.create(
+            project_name="Test Project",
+            customer=self.customer,
+            project_value=50000.00
+        )
+        self.sale = Sales.objects.create(
+            sales_name="Test Sale",
+            customer=self.customer,
+            project_value=10000.00,
+            expected_order_date=datetime.now().date()
+        )
+        self.leave_type = LeaveType.objects.create(
+            name="Sick Leave",
+            is_paid=True
+        )
+
+    def test_create_absence(self):
+        absence = Absence.objects.create(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() + timedelta(hours=8)).time(),
+            absence_description="Sick leave for the day",
+            project=self.project,
+            leave_type=self.leave_type
+        )
+        absence.full_clean()  # Validate fields
+        self.assertIsNotNone(absence.pk)
+        self.assertEqual(absence.duration.total_seconds(), 8 * 3600)
+
+    def test_absence_with_sale_relation(self):
+        absence = Absence(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() + timedelta(hours=8)).time(),
+            absence_description="Attending a sales event",
+            sale=self.sale,
+            leave_type=self.leave_type
+        )
+        absence.full_clean()
+        absence.save()
+        self.assertIsNotNone(absence.pk)
+        self.assertEqual(absence.sale, self.sale)
+
+    def test_absence_invalid_project_and_sale(self):
+        absence = Absence(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() + timedelta(hours=8)).time(),
+            project=self.project,
+            sale=self.sale,
+            leave_type=self.leave_type
+        )
+        with self.assertRaises(ValidationError):
+            absence.full_clean()
+
+    def test_absence_missing_relations(self):
+        absence = Absence(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() + timedelta(hours=8)).time(),
+            absence_description="General leave"
+        )
+        with self.assertRaises(ValidationError):
+            absence.full_clean()
+
+    def test_absence_str_representation(self):
+        absence = Absence.objects.create(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() + timedelta(hours=8)).time(),
+            absence_description="Sick leave",
+            project=self.project,
+            leave_type=self.leave_type
+        )
+        self.assertEqual(str(absence), f"{self.user} - {self.leave_type} on {absence.absence_date}")
+
+    def test_absence_overnight_duration(self):
+        absence = Absence.objects.create(
+            user=self.user,
+            absence_date=datetime.now().date(),
+            start_time=datetime.now().time(),
+            end_time=(datetime.now() - timedelta(hours=4)).time(),
+            absence_description="Overnight shift",
+            project=self.project,
+            leave_type=self.leave_type
+        )
+        absence.full_clean()  # Validate fields
+        self.assertIsNotNone(absence.pk)
+        # Assuming 4-hour difference between end time next day
+        self.assertEqual(absence.duration.total_seconds(), 20 * 3600)  # 20 hours in seconds

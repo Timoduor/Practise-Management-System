@@ -1,0 +1,43 @@
+from hub.views.customer_view import CustomerViewSet
+from hub.views.contact_view import ContactViewSet
+from hub.views.project_view import ProjectViewSet
+from hub.views.sales_task_view import SalesTaskViewSet
+from hub.views.task_view import TaskViewSet
+from hub.views.sales_view import SalesViewSet
+from hub.views.invoice_view import InvoiceViewSet
+from hub.views.project_phase_view import ProjectPhaseViewSet
+from hub.views.work_entries_view import WorkEntriesViewSet
+from hub.views.leave_type_view import LeaveTypeViewSet
+from hub.views.absence_view import AbsenceViewSet
+from hub.views.expense_view import ExpenseViewSet
+from hub.views.timesheet_view import TimesheetView
+from hub.views.sales_task_type_view import SalesTaskTypeViewSet
+from hub.views.sales_task_status_view import SalesTaskStatusViewSet
+from hub.views.task_type_view import TaskTypeViewSet
+from hub.views.task_status_view import TaskStatusViewSet
+from hub.views.sales_status_view import SalesStatusViewSet
+
+
+
+
+__all__ = [
+    "CustomerViewSet",
+    "ContactViewSet",
+    "ProjectViewSet",
+    "SalesTaskViewSet",
+    "TaskViewSet",
+    "SalesViewSet",
+    "InvoiceViewSet",
+    "ProjectPhaseViewSet",
+    "WorkEntriesViewSet",
+    "LeaveTypeViewSet",
+    "AbsenceViewSet",
+    "ExpenseViewSet",
+    "TimesheetView",
+    "SalesTaskTypeViewSet",
+    "SalesTaskStatusViewSet",
+    "TaskTypeViewSet",
+    "TaskStatusViewSet",
+    "SalesStatusViewSet",
+]
+
