@@ -7,6 +7,11 @@ from core.models.organisation_data import OrganisationData
 
 
 class Customer(SoftDeleteModel):
+
+     # Override managers
+    objects = models.Manager()             # Includes all records (including soft-deleted)
+    all_objects = models.Manager()         # Optional alias, can be removed or renamed
+
     customer_id = models.AutoField(primary_key=True)
     customer_name = models.CharField(max_length=100)
     customer_email = models.EmailField(unique=True)

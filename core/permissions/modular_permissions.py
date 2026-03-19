@@ -29,6 +29,7 @@ class HasModularPermission(BasePermission):
 
 class CanInviteUsers(HasModularPermission):
     required_permission_code = 'can_invite_users'
+    
 
 
     

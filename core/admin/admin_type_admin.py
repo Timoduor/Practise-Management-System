@@ -46,3 +46,5 @@ class AdminTypeAdmin(SoftDeleteAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    

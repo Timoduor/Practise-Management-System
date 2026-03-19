@@ -30,7 +30,7 @@ class SalesSerializer(SoftDeleteBaseSerializer):
         fields = [
             'sales_id', 'sales_name', 'sales_description', 'project_value', 
             'expected_order_date', 'sales_status', 'sales_status_display', 'sales_tasks',
-            'customer', 'project_manager','members', 'member_ids', 'created_by', 'entity', 'unit', 
+            'customer', 'project_manager','members', 'member_ids', 'created_by', 'instance', 'entity', 'unit', 
             'is_deleted', 'created_at', 'updated_at'
         ] + SoftDeleteBaseSerializer.Meta.fields
 

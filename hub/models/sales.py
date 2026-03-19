@@ -2,6 +2,7 @@ from django.db import models
 from core.models.base import SoftDeleteModel
 from core.models.employee import Employee
 from core.models.entity import Entity
+from core.models.instance import Instance
 from core.models.unit import Unit
 from core.models.user import User
 from .customer import Customer
@@ -18,6 +19,7 @@ class Sales(SoftDeleteModel):
     project_manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_manager")
     members = models.ManyToManyField(Employee, blank=True, related_name="sales_members")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_creator")
+    instance = models.ForeignKey(Instance, on_delete=models.SET_NULL, null=True, blank=True)
     entity = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
 

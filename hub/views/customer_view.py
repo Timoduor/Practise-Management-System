@@ -14,6 +14,7 @@ from hub.serializers.customer_serializer import CustomerSerializer
 from .common_viewset import CommonViewSet
 from django.http import JsonResponse
 from core.models.organisation_data import OrganisationData
+from rest_framework.exceptions import NotFound
 
 
 class CustomerViewSet(CommonViewSet):
@@ -24,13 +25,32 @@ class CustomerViewSet(CommonViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]  # Everyone must be logged in, but all have full access
+    lookup_field = "customer_id"
 
     def get_queryset(self):
-        # Return ALL customer records for any logged-in user
         user = self.request.user
-        if user.is_authenticated:
-            return Customer.objects.all()
-        return Customer.objects.none()
+        if not user.is_authenticated:
+           return Customer.objects.none()
+    
+        org_id = self.request.query_params.get("organisation")
+        if org_id:
+           return Customer.objects.filter(organisation_id=org_id, is_deleted=False)
+    
+        return Customer.objects.none()  # No organisation specified, return empty queryset
+
+    def get_object(self):
+        queryset = Customer.all_objects.all()  # Use manager that includes soft-deleted
+        lookup_value = self.kwargs.get(self.lookup_field)  # e.g. 'customer_id'
+        org_id = self.request.query_params.get("organisation")
+
+        if not org_id:
+           raise NotFound("Organisation parameter is required.")
+
+        obj = queryset.filter(customer_id=lookup_value, organisation_id=org_id).first()
+        if not obj:
+            raise NotFound("Customer not found or doesn't belong to this organisation.")
+        return obj
+
 
     @action(detail=True, methods=["get"], url_path="summary")
     def get_ribbon(self, request, *args, **kwargs):
@@ -41,7 +61,8 @@ class CustomerViewSet(CommonViewSet):
         pk = kwargs.get("pk")
 
         try:
-            customer = Customer.objects.get(customer_id=pk)
+            customer = self.get_object()  # ✅ uses the right queryset and respects organisation + permissions
+            #customer = Customer.objects.get(customer_id=pk)
         except Customer.DoesNotExist:
             return Response({"error": "Customer not found"}, status=404)
 
